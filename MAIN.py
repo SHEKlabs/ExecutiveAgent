@@ -2,7 +2,7 @@
 import os
 from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
-import sheets
+import gsheets
 import chatbot
 
 load_dotenv()  # Load environment variables from .env
