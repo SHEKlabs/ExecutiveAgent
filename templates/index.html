@@ -1,0 +1,50 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Executive Assistant Chatbot</title>
+</head>
+<body>
+    <h1>Executive Assistant Chatbot</h1>
+    <div id="chat-box" style="border: 1px solid #ccc; padding: 10px; width: 500px; height: 300px; overflow-y: scroll;">
+        <!-- Chat messages will appear here -->
+    </div>
+    <form id="chat-form">
+        <input type="text" id="message" placeholder="Type your message..." style="width: 400px;">
+        <button type="submit">Send</button>
+    </form>
+
+    <script>
+        const form = document.getElementById('chat-form');
+        const chatBox = document.getElementById('chat-box');
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const message = document.getElementById('message').value;
+            if (!message) return;
+
+            // Append user message
+            chatBox.innerHTML += `<p><strong>You:</strong> ${message}</p>`;
+            
+            // Send the message to the server
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Append chatbot response
+                chatBox.innerHTML += `<p><strong>Assistant:</strong> ${data.response}</p>`;
+                // Clear the input
+                document.getElementById('message').value = '';
+                // Scroll to the bottom
+                chatBox.scrollTop = chatBox.scrollHeight;
+            });
+        });
+    </script>
+</body>
+</html>
