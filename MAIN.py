@@ -1,13 +1,23 @@
-# main.py
-import os
-from flask import Flask, render_template, request, jsonify
+# MAIN.py
 from dotenv import load_dotenv
+load_dotenv()  # Load env variables immediately
+
+from templates.execAgent_promptLibrary import get_prompt
+import os
+print("Loaded GOOGLE_SHEETS_CREDENTIALS:", os.environ.get("GOOGLE_SHEETS_CREDENTIALS"))
+
 import gsheets
 import chatbot
-
-load_dotenv()  # Load environment variables from .env
+from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
+
+def test_projects_data():
+    # Retrieve projects data from Google Sheets and print it for testing purposes.
+    projects_data = gsheets.get_projects()
+    print("Test: Retrieved projects data:")
+    print(projects_data)
+    return projects_data
 
 @app.route("/")
 def index():
@@ -17,15 +27,14 @@ def index():
 def chat():
     user_input = request.form.get("message")
     
-    # For now, we’ll only use the "Projects" data from Google Sheets
-    projects = sheets.get_projects()  # returns a list or summary string
+    # Retrieve and print projects data for testing.
+    projects = test_projects_data()
     
-    # Build a prompt for the LLM
-    prompt = f"User asked: {user_input}\n\nHere are the current projects from my Google Sheets:\n{projects}\n\nPlease provide a helpful response."
+    # Use our prompt library to generate the full prompt.
+    full_prompt = get_prompt("show_projects", user_query=user_input, projects=projects)
     
-    # You can choose model 'gpt-4' if you have access, otherwise 'gpt-3.5-turbo'
-    response = chatbot.get_response(prompt, model="gpt-3.5-turbo")
-    
+    # Get response from OpenAI using GPT-4.
+    response = chatbot.get_response(full_prompt, model="gpt-4")
     return jsonify({"response": response})
 
 if __name__ == "__main__":
