@@ -1,50 +1,286 @@
-<!-- templates/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Executive Assistant Chatbot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExecutiveAgent</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #chat-container {
+            height: 500px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 5px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background-color: #e6f7ff;
+            margin-left: auto;
+            border-top-right-radius: 0;
+        }
+        .assistant-message {
+            background-color: #f2f2f2;
+            margin-right: auto;
+            border-top-left-radius: 0;
+        }
+        #message-form {
+            display: flex;
+        }
+        #message-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px 0 0 5px;
+        }
+        #submit-button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 0 5px 5px 0;
+            cursor: pointer;
+        }
+        #submit-button:hover {
+            background-color: #45a049;
+        }
+        .typing-indicator {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #f2f2f2;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #999;
+            animation: typing 1.4s infinite ease-in-out;
+            margin-right: 3px;
+        }
+        .dot:nth-child(1) { animation-delay: 0s; }
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0); }
+        }
+        .settings-toggle {
+            margin-bottom: 10px;
+            color: #666;
+            cursor: pointer;
+            user-select: none;
+        }
+        .settings-panel {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .checkbox-container input {
+            margin-right: 8px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Executive Assistant Chatbot</h1>
-    <div id="chat-box" style="border: 1px solid #ccc; padding: 10px; width: 500px; height: 300px; overflow-y: scroll;">
-        <!-- Chat messages will appear here -->
+    <h1>ExecutiveAgent</h1>
+    <p>Your AI executive assistant powered by LangChain and Google Sheets</p>
+    
+    <div class="settings-toggle" onclick="toggleSettings()">⚙️ Settings</div>
+    <div id="settings-panel" class="settings-panel">
+        <div class="checkbox-container">
+            <input type="checkbox" id="enable-streaming">
+            <label for="enable-streaming">Enable streaming responses</label>
+        </div>
     </div>
-    <form id="chat-form">
-        <input type="text" id="message" placeholder="Type your message..." style="width: 400px;">
-        <button type="submit">Send</button>
+
+    <div id="chat-container"></div>
+    
+    <form id="message-form">
+        <input type="text" id="message-input" placeholder="Type your message here..." required>
+        <button type="submit" id="submit-button">Send</button>
     </form>
 
     <script>
-        const form = document.getElementById('chat-form');
-        const chatBox = document.getElementById('chat-box');
+        const chatContainer = document.getElementById('chat-container');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+        const streamingCheckbox = document.getElementById('enable-streaming');
+        let currentMessageElement = null;
+        
+        function toggleSettings() {
+            const settingsPanel = document.getElementById('settings-panel');
+            settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function appendMessage(content, isUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
+            messageDiv.innerHTML = content;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return messageDiv;
+        }
+        
+        function showTypingIndicator() {
+            const indicator = document.createElement('div');
+            indicator.className = 'typing-indicator';
+            indicator.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+            chatContainer.appendChild(indicator);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return indicator;
+        }
+        
+        function removeTypingIndicator(indicator) {
+            if (indicator && indicator.parentNode === chatContainer) {
+                chatContainer.removeChild(indicator);
+            }
+        }
 
-        form.addEventListener('submit', function(e) {
+        messageForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            const message = document.getElementById('message').value;
+            const message = messageInput.value.trim();
             if (!message) return;
-
-            // Append user message
-            chatBox.innerHTML += `<p><strong>You:</strong> ${message}</p>`;
             
-            // Send the message to the server
-            fetch('/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: new URLSearchParams({ message: message })
-            })
-            .then(response => response.json())
-            .then(data => {
-                // Append chatbot response
-                chatBox.innerHTML += `<p><strong>Assistant:</strong> ${data.response}</p>`;
-                // Clear the input
-                document.getElementById('message').value = '';
-                // Scroll to the bottom
-                chatBox.scrollTop = chatBox.scrollHeight;
-            });
+            // Add user message to chat
+            appendMessage(message, true);
+            messageInput.value = '';
+            
+            const formData = new FormData();
+            formData.append('message', message);
+            
+            if (streamingCheckbox.checked) {
+                // Handle streaming response
+                formData.append('stream', 'true');
+                
+                // Show typing indicator initially
+                const typingIndicator = showTypingIndicator();
+                
+                // Create empty message element for the assistant
+                currentMessageElement = document.createElement('div');
+                currentMessageElement.className = 'message assistant-message';
+                currentMessageElement.style.display = 'none';
+                chatContainer.appendChild(currentMessageElement);
+                
+                try {
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Server responded with status ${response.status}`);
+                    }
+                    
+                    if (!response.body) {
+                        throw new Error("ReadableStream not supported in this browser");
+                    }
+                    
+                    const reader = response.body.getReader();
+                    let accumulatedResponse = '';
+                    
+                    // Remove typing indicator after first chunk
+                    let firstChunk = true;
+                    
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        
+                        if (done) {
+                            break;
+                        }
+                        
+                        // Convert the chunk to text
+                        const chunk = new TextDecoder().decode(value);
+                        accumulatedResponse += chunk;
+                        
+                        if (firstChunk) {
+                            removeTypingIndicator(typingIndicator);
+                            currentMessageElement.style.display = 'block';
+                            firstChunk = false;
+                        }
+                        
+                        // Update the message with accumulated text
+                        currentMessageElement.innerHTML = accumulatedResponse;
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    }
+                } catch (error) {
+                    console.error("Streaming error:", error);
+                    removeTypingIndicator(typingIndicator);
+                    
+                    // If we already started displaying the message, update it with the error
+                    if (currentMessageElement && currentMessageElement.style.display === 'block') {
+                        currentMessageElement.innerHTML += `<br><em>Error: ${error.message}</em>`;
+                    } else {
+                        // Otherwise create a new message
+                        appendMessage(`I encountered an error while processing your request: ${error.message}`, false);
+                    }
+                    
+                    // Fallback to non-streaming request
+                    try {
+                        console.log("Falling back to non-streaming request");
+                        formData.delete('stream');
+                        const fallbackResponse = await fetch('/chat', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const fallbackData = await fallbackResponse.json();
+                        
+                        if (currentMessageElement && currentMessageElement.style.display === 'block') {
+                            currentMessageElement.innerHTML = fallbackData.response;
+                        } else {
+                            appendMessage(fallbackData.response, false);
+                        }
+                    } catch (fallbackError) {
+                        console.error("Fallback error:", fallbackError);
+                    }
+                }
+            } else {
+                // Handle regular (non-streaming) response
+                const typingIndicator = showTypingIndicator();
+                
+                try {
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    removeTypingIndicator(typingIndicator);
+                    appendMessage(data.response, false);
+                } catch (error) {
+                    removeTypingIndicator(typingIndicator);
+                    appendMessage(`Error: ${error.message}`, false);
+                }
+            }
         });
+        
+        // Initialize with a welcome message
+        window.onload = function() {
+            appendMessage("Hello! I'm your Executive Assistant AI. I can help you with managing your projects and tasks. How can I assist you today?", false);
+            document.getElementById('settings-panel').style.display = 'none';
+        };
     </script>
 </body>
 </html>

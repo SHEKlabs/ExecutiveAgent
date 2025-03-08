@@ -2,22 +2,31 @@
 from dotenv import load_dotenv
 load_dotenv()  # Load env variables immediately
 
-from templates.execAgent_promptLibrary import get_prompt
 import os
-print("Loaded GOOGLE_SHEETS_CREDENTIALS:", os.environ.get("GOOGLE_SHEETS_CREDENTIALS"))
+import queue
+from threading import Thread
+from flask import Flask, render_template, request, jsonify, Response
 
-import gsheets
-import chatbot
-from flask import Flask, render_template, request, jsonify
+# Import our new LangChain modules
+from langchain_gsheets import GoogleSheetsConnector
+from simple_agent import SimpleAgent
 
 app = Flask(__name__)
 
-def test_projects_data():
-    # Retrieve projects data from Google Sheets and print it for testing purposes.
-    projects_data = gsheets.get_projects()
-    print("Test: Retrieved projects data:")
-    print(projects_data)
-    return projects_data
+# Initialize the Google Sheets connector
+sheets_connector = GoogleSheetsConnector()
+
+# Create tools from the sheets connector
+projects_tool = sheets_connector.get_projects_tool()
+search_projects_tool = sheets_connector.search_projects_tool()
+
+# List of tools for the agent
+tools = [projects_tool, search_projects_tool]
+
+# For streaming responses
+def generate_streaming_response(user_query):
+    # Streaming not implemented yet with the simple agent
+    yield "Streaming responses are currently not supported. Please try without streaming enabled."
 
 @app.route("/")
 def index():
@@ -26,16 +35,91 @@ def index():
 @app.route("/chat", methods=["POST"])
 def chat():
     user_input = request.form.get("message")
+    print(f"Received message: {user_input}")
     
-    # Retrieve and print projects data for testing.
-    projects = test_projects_data()
+    # Check if we're requesting a streaming response
+    stream_response = request.form.get("stream") == "true"
     
-    # Use our prompt library to generate the full prompt.
-    full_prompt = get_prompt("show_projects", user_query=user_input, projects=projects)
+    if stream_response:
+        try:
+            print("Attempting streaming response")
+            return Response(generate_streaming_response(user_input), mimetype='text/event-stream')
+        except Exception as e:
+            print(f"Error setting up streaming response: {e}")
+            # Fall back to non-streaming if there's an error
+            stream_response = False
     
-    # Get response from OpenAI using GPT-4.
-    response = chatbot.get_response(full_prompt, model="gpt-4")
-    return jsonify({"response": response})
+    # Non-streaming response
+    if not stream_response:
+        try:
+            print("Using non-streaming response")
+            # Initialize a new agent for each request (stateless)
+            agent = SimpleAgent(tools=tools)
+            print("Agent initialized, processing query...")
+            response = agent.process_query(user_input)
+            print(f"Response generated: {response[:100]}...")  # Log first 100 chars of response
+            return jsonify({"response": response})
+        except Exception as e:
+            print(f"Error in non-streaming response: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({"response": f"I encountered an error: {str(e)}"})
+
+# Legacy endpoint for testing
+@app.route("/test_projects", methods=["GET"])
+def test_projects():
+    projects_data = sheets_connector.get_projects_raw()
+    return jsonify({"data": projects_data})
+
+# New endpoint for vector search
+@app.route("/search_projects", methods=["POST"])
+def search_projects():
+    query = request.form.get("query")
+    results = sheets_connector.search_projects(query)
+    return jsonify({"results": results})
+
+# New endpoint for direct tool testing
+@app.route("/test_tool/<tool_name>", methods=["GET"])
+def test_tool(tool_name):
+    try:
+        if tool_name == "GetProjects":
+            result = sheets_connector.get_projects_raw()
+            return jsonify({"success": True, "result": result})
+        elif tool_name == "SearchProjects":
+            query = request.args.get("query", "finance")
+            result = sheets_connector.search_projects(query)
+            return jsonify({"success": True, "result": result})
+        else:
+            return jsonify({"success": False, "error": f"Unknown tool: {tool_name}"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 if __name__ == "__main__":
+    # Check if we're running in test mode
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "--test":
+        print("Running in test mode...")
+        print("\n=== Testing Google Sheets Connection ===")
+        print("Fetching projects data:")
+        projects_data = sheets_connector.get_projects_raw()
+        print(projects_data)
+        
+        if len(sys.argv) > 2:
+            search_query = sys.argv[2]
+            print(f"\n=== Searching for: {search_query} ===")
+            search_results = sheets_connector.search_projects(search_query)
+            print(search_results)
+        
+        print("\nTest complete. Exit.")
+        sys.exit(0)
+    
+    # Initialize data store on startup
+    print("Loading data from Google Sheets...")
+    try:
+        sheets_connector.create_vector_store()
+        print("Data store initialized!")
+    except Exception as e:
+        print(f"Warning: Error initializing vector store: {e}")
+        print("Will continue with basic functionality")
+    
     app.run(debug=True)

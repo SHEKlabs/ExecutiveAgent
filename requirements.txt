@@ -1,0 +1,12 @@
+Flask
+python-dotenv
+gspread
+oauth2client
+openai
+langchain
+langchain-openai
+pydantic
+langchain-community
+google-auth
+google-auth-oauthlib
+faiss-cpu  # For vector store functionality
