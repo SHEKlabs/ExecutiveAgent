@@ -102,6 +102,198 @@
         .checkbox-container input {
             margin-right: 8px;
         }
+        /* Project table styling */
+        .project-table-container {
+            margin: 15px 0;
+            overflow-x: auto;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background-color: #fff;
+        }
+
+        .project-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .project-table th {
+            background-color: #f2f2f2;
+            color: #333;
+            font-weight: bold;
+            padding: 12px 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+            position: sticky;
+            top: 0;
+        }
+
+        .project-table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+
+        .project-table tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .project-table tbody tr:hover {
+            background-color: #f0f7ff;
+            transition: background-color 0.2s ease;
+        }
+
+        .project-info {
+            margin-top: 10px;
+            font-style: italic;
+            color: #666;
+        }
+
+        /* Make tables responsive on mobile */
+        @media (max-width: 768px) {
+            .project-table-container {
+                margin: 10px -15px;
+                width: calc(100% + 30px);
+            }
+            
+            .project-table th,
+            .project-table td {
+                padding: 8px 5px;
+                font-size: 13px;
+            }
+        }
+
+        /* Add this CSS to the <style> section in the <head> of index.html */
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal-content {
+            position: relative;
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 0;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 900px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            border-radius: 8px;
+            animation: slideDown 0.3s;
+        }
+
+        .modal-header {
+            padding: 15px 20px;
+            background-color: #f8f8f8;
+            border-bottom: 1px solid #ddd;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-modal:hover,
+        .close-modal:focus {
+            color: black;
+            text-decoration: none;
+        }
+
+        /* View Projects Button */
+        .view-projects-button {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 16px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .view-projects-button:hover {
+            background-color: #45a049;
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {opacity: 0;}
+            to {opacity: 1;}
+        }
+
+        @keyframes slideDown {
+            from {transform: translateY(-50px); opacity: 0;}
+            to {transform: translateY(0); opacity: 1;}
+        }
+
+        /* Make tables in modal responsive and interactive */
+        .modal-body .project-table-container {
+            margin: 0;
+            box-shadow: none;
+        }
+
+        .modal-body .project-table {
+            width: 100%;
+            margin-bottom: 0;
+        }
+
+        .modal-body .project-table tbody tr:hover {
+            background-color: #e9f7fe;
+            cursor: pointer;
+        }
+
+        /* Future edit mode styles */
+        .editable-cell {
+            position: relative;
+        }
+
+        .editable-cell:hover::after {
+            content: '✏️';
+            position: absolute;
+            right: 5px;
+            font-size: 12px;
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body>
@@ -117,6 +309,10 @@
     </div>
 
     <div id="chat-container"></div>
+
+    <div style="margin-bottom: 10px; text-align: right;">
+        <button id="standalone-projects-button" class="view-projects-button">View All Projects</button>
+    </div>
     
     <form id="message-form">
         <input type="text" id="message-input" placeholder="Type your message here..." required>
@@ -135,13 +331,39 @@
             settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
         }
         
-        function appendMessage(content, isUser) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
-            messageDiv.innerHTML = content;
-            chatContainer.appendChild(messageDiv);
+        function appendMessage(message, isUser, containsHtml = false) {
+            const messageElement = document.createElement('div');
+            messageElement.className = isUser ? 'message user-message' : 'message assistant-message';
+            
+            // If the message contains HTML and is from the assistant, use innerHTML
+            if (containsHtml && !isUser) {
+                // Create a styled container for the HTML content
+                messageElement.innerHTML = message;
+                
+                // Add styling for tables after they're added to the DOM
+                setTimeout(() => {
+                    const tables = messageElement.querySelectorAll('table.project-table');
+                    tables.forEach(table => {
+                        // Add hover effect for rows
+                        const rows = table.querySelectorAll('tbody tr');
+                        rows.forEach(row => {
+                            row.addEventListener('mouseover', function() {
+                                this.style.backgroundColor = '#f5f5f5';
+                            });
+                            row.addEventListener('mouseout', function() {
+                                this.style.backgroundColor = '';
+                            });
+                        });
+                    });
+                }, 0);
+            } else {
+                // Plain text message
+                messageElement.textContent = message;
+            }
+            
+            chatContainer.appendChild(messageElement);
             chatContainer.scrollTop = chatContainer.scrollHeight;
-            return messageDiv;
+            return messageElement;
         }
         
         function showTypingIndicator() {
@@ -159,120 +381,125 @@
             }
         }
 
+        // Add a flag to log responses for debugging
+        let debugMode = true;
+
         messageForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             const message = messageInput.value.trim();
             if (!message) return;
             
             // Add user message to chat
-            appendMessage(message, true);
+            const userMessageElement = document.createElement('div');
+            userMessageElement.className = 'message user-message';
+            userMessageElement.textContent = message;
+            chatContainer.appendChild(userMessageElement);
+            
             messageInput.value = '';
             
+            // Show typing indicator
+            const typingIndicator = showTypingIndicator();
+            
+            // Prepare form data
             const formData = new FormData();
             formData.append('message', message);
+            formData.append('stream', streamingCheckbox.checked ? 'true' : 'false');
             
-            if (streamingCheckbox.checked) {
-                // Handle streaming response
-                formData.append('stream', 'true');
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    body: formData
+                });
                 
-                // Show typing indicator initially
-                const typingIndicator = showTypingIndicator();
-                
-                // Create empty message element for the assistant
-                currentMessageElement = document.createElement('div');
-                currentMessageElement.className = 'message assistant-message';
-                currentMessageElement.style.display = 'none';
-                chatContainer.appendChild(currentMessageElement);
-                
-                try {
-                    const response = await fetch('/chat', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`Server responded with status ${response.status}`);
-                    }
-                    
-                    if (!response.body) {
-                        throw new Error("ReadableStream not supported in this browser");
-                    }
-                    
-                    const reader = response.body.getReader();
-                    let accumulatedResponse = '';
-                    
-                    // Remove typing indicator after first chunk
-                    let firstChunk = true;
-                    
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        
-                        if (done) {
-                            break;
-                        }
-                        
-                        // Convert the chunk to text
-                        const chunk = new TextDecoder().decode(value);
-                        accumulatedResponse += chunk;
-                        
-                        if (firstChunk) {
-                            removeTypingIndicator(typingIndicator);
-                            currentMessageElement.style.display = 'block';
-                            firstChunk = false;
-                        }
-                        
-                        // Update the message with accumulated text
-                        currentMessageElement.innerHTML = accumulatedResponse;
-                        chatContainer.scrollTop = chatContainer.scrollHeight;
-                    }
-                } catch (error) {
-                    console.error("Streaming error:", error);
-                    removeTypingIndicator(typingIndicator);
-                    
-                    // If we already started displaying the message, update it with the error
-                    if (currentMessageElement && currentMessageElement.style.display === 'block') {
-                        currentMessageElement.innerHTML += `<br><em>Error: ${error.message}</em>`;
-                    } else {
-                        // Otherwise create a new message
-                        appendMessage(`I encountered an error while processing your request: ${error.message}`, false);
-                    }
-                    
-                    // Fallback to non-streaming request
-                    try {
-                        console.log("Falling back to non-streaming request");
-                        formData.delete('stream');
-                        const fallbackResponse = await fetch('/chat', {
-                            method: 'POST',
-                            body: formData
-                        });
-                        const fallbackData = await fallbackResponse.json();
-                        
-                        if (currentMessageElement && currentMessageElement.style.display === 'block') {
-                            currentMessageElement.innerHTML = fallbackData.response;
-                        } else {
-                            appendMessage(fallbackData.response, false);
-                        }
-                    } catch (fallbackError) {
-                        console.error("Fallback error:", fallbackError);
-                    }
-                }
-            } else {
-                // Handle regular (non-streaming) response
-                const typingIndicator = showTypingIndicator();
-                
-                try {
-                    const response = await fetch('/chat', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
+                // Handle streaming or regular response
+                if (streamingCheckbox.checked) {
+                    // Streaming logic...
+                    // (Keep your existing streaming code)
+                } else {
+                    // Regular response
                     const data = await response.json();
+                    
+                    // Debug log
+                    if (debugMode) {
+                        console.log("Response data:", data);
+                        console.log("Contains HTML?", data.contains_html);
+                    }
+                    
+                    // Create message element
+                    const assistantMessageElement = document.createElement('div');
+                    assistantMessageElement.className = 'message assistant-message';
+                    
+                    // Check if response contains HTML
+                    if (data.contains_html) {
+                        console.log("Rendering HTML content");
+                        assistantMessageElement.innerHTML = data.response;
+                        
+                        // Apply styling to tables
+                        setTimeout(() => {
+                            const tables = assistantMessageElement.querySelectorAll('table.project-table');
+                            if (tables.length > 0) {
+                                console.log("Found tables to style:", tables.length);
+                            } else {
+                                console.log("No tables found with class .project-table");
+                                console.log("HTML content:", assistantMessageElement.innerHTML);
+                            }
+                            
+                            // Style tables and add interactivity
+                            tables.forEach(table => {
+                                // Add hover effect for rows
+                                const rows = table.querySelectorAll('tbody tr');
+                                rows.forEach(row => {
+                                    row.addEventListener('mouseover', function() {
+                                        this.style.backgroundColor = '#f5f5f5';
+                                    });
+                                    row.addEventListener('mouseout', function() {
+                                        this.style.backgroundColor = '';
+                                    });
+                                });
+                            });
+                        }, 10);
+                    } else {
+                        assistantMessageElement.textContent = data.response;
+                    }
+                    
+                    // Remove typing indicator and add message
                     removeTypingIndicator(typingIndicator);
-                    appendMessage(data.response, false);
-                } catch (error) {
-                    removeTypingIndicator(typingIndicator);
-                    appendMessage(`Error: ${error.message}`, false);
+                    chatContainer.appendChild(assistantMessageElement);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+
+                    // After adding the message to the chat
+                    if (!streamingCheckbox.checked && message.toLowerCase().includes('project')) {
+                        setTimeout(() => {
+                            // Check the last message for project listings
+                            const lastMessage = chatContainer.querySelector('.message.assistant-message:last-child');
+                            if (lastMessage && lastMessage.textContent.includes('projects')) {
+                                console.log("Adding projects button via direct method");
+                                
+                                // Create the button
+                                const viewProjectsBtn = document.createElement('button');
+                                viewProjectsBtn.className = 'view-projects-button';
+                                viewProjectsBtn.textContent = 'View Projects Table';
+                                viewProjectsBtn.onclick = loadAndShowProjectsTable;
+                                
+                                // Add it to the message
+                                lastMessage.appendChild(document.createElement('br'));
+                                lastMessage.appendChild(viewProjectsBtn);
+                            }
+                        }, 500); // Delay to make sure the message is fully rendered
+                    }
                 }
+            } catch (error) {
+                console.error("Error in chat request:", error);
+                
+                // Remove typing indicator
+                removeTypingIndicator(typingIndicator);
+                
+                // Add error message
+                const errorMessageElement = document.createElement('div');
+                errorMessageElement.className = 'message assistant-message';
+                errorMessageElement.textContent = `Error: ${error.message}`;
+                chatContainer.appendChild(errorMessageElement);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
             }
         });
         
@@ -280,7 +507,222 @@
         window.onload = function() {
             appendMessage("Hello! I'm your Executive Assistant AI. I can help you with managing your projects and tasks. How can I assist you today?", false);
             document.getElementById('settings-panel').style.display = 'none';
+            
+            // Initialize the standalone button
+            const standaloneButton = document.getElementById('standalone-projects-button');
+            if (standaloneButton) {
+                standaloneButton.addEventListener('click', loadAndShowProjectsTable);
+            }
         };
+
+        // Global variables for the projects modal
+        const projectsModal = document.getElementById('projects-modal');
+        const modalContent = document.getElementById('projects-modal-content');
+        const closeModalBtn = document.querySelector('.close-modal');
+        const viewProjectsButtonTemplate = document.getElementById('view-projects-button-template');
+
+        // Function to create and insert "View Projects Table" button after showing a list of projects
+        function addViewProjectsButton(message) {
+            console.log("Checking if we should add a View Projects button");
+            
+            // Force button to appear any time projects are shown (more reliable)
+            if (message.includes("projects") && (
+                message.includes("Here are your") || 
+                message.includes("Project") || 
+                message.includes("Category") ||
+                message.includes("Tags") ||
+                message.includes("My Finance App")
+            )) {
+                console.log("Projects listing detected, adding View Projects button");
+                
+                // Create button directly (don't use template since it might be causing issues)
+                const viewProjectsBtn = document.createElement('button');
+                viewProjectsBtn.className = 'view-projects-button';
+                viewProjectsBtn.textContent = 'View Projects Table';
+                viewProjectsBtn.onclick = loadAndShowProjectsTable;
+                
+                // Add to the last message
+                const lastMessage = chatContainer.querySelector('.message.assistant-message:last-child');
+                if (lastMessage) {
+                    console.log("Found last message to append button to");
+                    lastMessage.appendChild(document.createElement('br'));
+                    lastMessage.appendChild(viewProjectsBtn);
+                } else {
+                    console.log("Could not find last message");
+                }
+            } else {
+                console.log("No projects listing detected in message");
+            }
+        }
+
+        // Function to load and display the projects table
+        // Replace the existing loadAndShowProjectsTable function with this improved version
+        function loadAndShowProjectsTable() {
+            console.log("Loading projects table...");
+            
+            // Show modal with loading indicator
+            const projectsModal = document.getElementById('projects-modal');
+            const modalContent = document.getElementById('projects-modal-content');
+            
+            if (!projectsModal || !modalContent) {
+                console.error("Modal elements not found!");
+                alert("Error: Could not open projects table. Please try again.");
+                return;
+            }
+            
+            projectsModal.style.display = 'block';
+            modalContent.innerHTML = '<div class="loading-spinner">Loading projects data...</div>';
+            // Add fix for close button immediately after displaying modal
+            setTimeout(fixModalCloseButton, 100);
+            
+            // Fetch the projects table HTML from our direct API endpoint
+            fetch('/direct/projects_table')
+                .then(response => {
+                    console.log("Response received:", response);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log("Data received:", data);
+                    
+                    if (data.success) {
+                        // Display the HTML content
+                        modalContent.innerHTML = data.html_content;
+                        console.log("Table content loaded into modal");
+                        
+                        // Add hover effects and interactivity to the table
+                        const tableRows = modalContent.querySelectorAll('table.project-table tbody tr');
+                        console.log("Found rows:", tableRows.length);
+                        
+                        tableRows.forEach(row => {
+                            // Add hover effect
+                            row.addEventListener('mouseover', function() {
+                                this.style.backgroundColor = '#e9f7fe';
+                            });
+                            
+                            row.addEventListener('mouseout', function() {
+                                this.style.backgroundColor = '';
+                            });
+                            
+                            // For future: Add click handler for row editing
+                            row.addEventListener('click', function() {
+                                // Store the selected project for potential editing
+                                const projectId = this.getAttribute('data-row-id');
+                                const projectName = this.getAttribute('data-project-name');
+                                console.log(`Selected project: ${projectName} (ID: ${projectId})`);
+                                
+                                // In the future, this could open an edit form
+                                // For now, just highlight the row
+                                tableRows.forEach(r => r.classList.remove('selected-row'));
+                                this.classList.add('selected-row');
+                            });
+                        });
+                    } else {
+                        // Show error message
+                        modalContent.innerHTML = `<div class="error-message">Error loading projects: ${data.error || 'Unknown error'}</div>`;
+                        console.error("Error from server:", data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error("Fetch error:", error);
+                    modalContent.innerHTML = `<div class="error-message">Error: ${error.message}</div>`;
+                });
+        }
+
+        // Fix for the close button
+        function fixModalCloseButton() {
+            console.log("Setting up close button handler");
+            
+            // Get the modal and close button
+            const projectsModal = document.getElementById('projects-modal');
+            const closeBtn = document.querySelector('.close-modal');
+            
+            if (!projectsModal || !closeBtn) {
+                console.error("Modal or close button not found:", 
+                            {modal: Boolean(projectsModal), closeBtn: Boolean(closeBtn)});
+                return;
+            }
+            
+            // Remove any existing event listeners (to avoid duplicates)
+            const newCloseBtn = closeBtn.cloneNode(true);
+            closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+            
+            // Add new click event listener
+            newCloseBtn.addEventListener('click', function() {
+                console.log("Close button clicked");
+                projectsModal.style.display = 'none';
+            });
+            
+            // Also add click outside listener
+            window.addEventListener('click', function(event) {
+                if (event.target === projectsModal) {
+                console.log("Clicked outside modal");
+                projectsModal.style.display = 'none';
+                }
+            });
+            
+            console.log("Close button handler configured");
+        }
+
+        // Modify the appendMessage function to add the "View Projects" button when appropriate
+        const originalAppendMessage = appendMessage;
+
+        // Override appendMessage to add the button
+        appendMessage = function(message, isUser, containsHtml = false) {
+            // Call the original function
+            const messageElement = originalAppendMessage(message, isUser, containsHtml);
+            
+            // If this is a bot message, check if we should add the View Projects button
+            if (!isUser && message.includes("projects")) {
+                console.log("Bot message with 'projects', checking for table...");
+                setTimeout(() => {
+                    addViewProjectsButton(message);
+                }, 100); // Small delay to ensure DOM is updated
+            }
+            
+            return messageElement;
+        };
+
+        // Add a direct button to the settings panel to view projects anytime
+        function addViewProjectsButtonToSettings() {
+            const settingsPanel = document.getElementById('settings-panel');
+            if (settingsPanel) {
+                const viewProjectsBtnInSettings = document.createElement('button');
+                viewProjectsBtnInSettings.textContent = 'View All Projects';
+                viewProjectsBtnInSettings.className = 'view-projects-button';
+                viewProjectsBtnInSettings.style.marginTop = '10px';
+                viewProjectsBtnInSettings.addEventListener('click', loadAndShowProjectsTable);
+                
+                settingsPanel.appendChild(document.createElement('hr'));
+                settingsPanel.appendChild(viewProjectsBtnInSettings);
+            }
+        }
+
+        // Call this function when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            addViewProjectsButtonToSettings();
+            fixModalCloseButton();
+        });
+
     </script>
+
+    <!-- Projects Table Modal -->
+    <div id="projects-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close-modal">&times;</span>
+                <h2>Projects List</h2>
+            </div>
+            <div class="modal-body" id="projects-modal-content">
+                <!-- Table content will be loaded here -->
+                <div class="loading-spinner">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projects Table Button Template (will be cloned and used by JS) -->
+    <template id="view-projects-button-template">
+        <button class="view-projects-button">View Projects Table</button>
+    </template>
+
 </body>
 </html>

@@ -57,13 +57,23 @@ def chat():
             agent = SimpleAgent(tools=tools)
             print("Agent initialized, processing query...")
             response = agent.process_query(user_input)
-            print(f"Response generated: {response[:100]}...")  # Log first 100 chars of response
-            return jsonify({"response": response})
+            print(f"Response generated (first 100 chars): {response[:100]}...")  # Log first 100 chars of response
+            
+            # Check if response contains HTML table
+            contains_html = "<table" in response and "</table>" in response
+            
+            if contains_html:
+                print("Response contains HTML content - setting contains_html flag")
+            
+            return jsonify({
+                "response": response,
+                "contains_html": contains_html
+            })
         except Exception as e:
             print(f"Error in non-streaming response: {e}")
             import traceback
             traceback.print_exc()
-            return jsonify({"response": f"I encountered an error: {str(e)}"})
+            return jsonify({"response": f"I encountered an error: {str(e)}", "contains_html": False})
 
 # Legacy endpoint for testing
 @app.route("/test_projects", methods=["GET"])
@@ -93,6 +103,31 @@ def test_tool(tool_name):
             return jsonify({"success": False, "error": f"Unknown tool: {tool_name}"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+
+# Something about creating necessary backend endpoint. FOr interactive table in the chatbot.
+@app.route("/direct/projects_table", methods=["GET"])
+def direct_projects_table():
+    """
+    Direct access to projects table without LLM processing
+    Returns the HTML table that can be embedded in the chat interface
+    """
+    try:
+        # Get raw HTML table
+        html_table = sheets_connector.get_projects_raw()
+        
+        # Return HTML content with additional wrapper
+        return jsonify({
+            "success": True,
+            "html_content": html_table
+        })
+    except Exception as e:
+        print(f"Error generating direct projects table: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        })
 
 if __name__ == "__main__":
     # Check if we're running in test mode

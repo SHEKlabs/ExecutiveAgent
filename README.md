@@ -10,6 +10,27 @@ GOOGLE_SHEETS_CREDENTIALS=path/to/your/credentials.json #This comes from the goo
 NOTION_TOKEN=your_notion_integration_token  # for future use
 SHEET_ID=your_google_sheet_id_here 
 
+######### PUSHING STUFF TO GITHUB FROM IDE (for reference when you push your code changes)
+# Initialize a new Git repository (if you haven't already)
+git init
+
+# Add all files to Git
+git add .
+
+# Exclude sensitive files
+echo ".env" >> .gitignore
+echo "credentials/*" >> .gitignore
+echo "__pycache__/" >> .gitignore
+
+# Create your first commit
+git commit -m "Initial commit of ExecutiveAgent with project table functionality"
+
+# Link to your GitHub repository (replace with your repo URL)
+git remote add origin https://github.com/yourusername/ExecutiveAgent.git
+
+# Push your code to GitHub
+git push -u origin main
+###############
 
 # .gitignore:
 

@@ -108,13 +108,13 @@ class GoogleSheetsConnector:
 
     def get_projects_raw(self, query=None):
         """
-        Get raw project data as a formatted string.
+        Get raw project data as an HTML table string.
         
         Args:
             query: Optional query parameter (ignored but required for LangChain tool compatibility)
         
         Returns:
-            Formatted string with project data
+            Formatted HTML table with project data
         """
         try:
             sheet = self.client.open_by_key(self.sheet_id)
@@ -131,22 +131,55 @@ class GoogleSheetsConnector:
             # Remaining rows as data
             data_rows = all_values[1:]
             
-            # Format the output in a more readable way for humans
-            output = "# Projects List\n\n"
+            # Debug output
+            print(f"Formatting {len(data_rows)} projects as HTML table")
             
-            # Add a table of projects
+            # Format the output as HTML table with unique data-project attributes for future interactivity
+            output = "<div class='project-table-container'>\n"
+            output += "<h2>Projects List</h2>\n"
+            output += "<table class='project-table' id='projects-table'>\n"
+            
+            # Add table header
+            output += "<thead>\n<tr>\n"
+            output += "<th>#</th>\n"
+            output += "<th>Project</th>\n"
+            output += "<th>Category</th>\n"
+            output += "<th>Owner</th>\n"
+            output += "<th>Tags</th>\n"
+            output += "<th>Connected Project</th>\n"
+            output += "</tr>\n</thead>\n"
+            
+            # Add table body
+            output += "<tbody>\n"
             for i, row in enumerate(data_rows, start=1):
                 row_dict = dict(zip(header, row))
-                output += f"## {i}. {row_dict.get('Project', f'Project {i}')}\n"
-                output += f"- **Category:** {row_dict.get('Category/Section', 'N/A')}\n"
-                output += f"- **Owner:** {row_dict.get('Owner', 'N/A')}\n"
-                output += f"- **Tags:** {row_dict.get('Tag', 'N/A')}\n"
-                if row_dict.get('Connected Project'):
-                    output += f"- **Connected Project:** {row_dict.get('Connected Project')}\n"
-                output += "\n"
+                
+                # Extract values for each column (with fallbacks if column doesn't exist)
+                project = row_dict.get('Project', 'N/A')
+                category = row_dict.get('Category/Section', 'N/A')
+                owner = row_dict.get('Owner', 'N/A')
+                tags = row_dict.get('Tag', 'N/A')
+                connected = row_dict.get('Connected Project', '')
+                
+                # Add row to table with data attributes for future interactivity
+                output += f"<tr data-row-id='{i}' data-project-name='{project}'>\n"
+                output += f"<td>{i}</td>\n"
+                output += f"<td>{project}</td>\n"
+                output += f"<td>{category}</td>\n"
+                output += f"<td>{owner}</td>\n"
+                output += f"<td>{tags}</td>\n"
+                output += f"<td>{connected}</td>\n"
+                output += "</tr>\n"
             
+            output += "</tbody>\n</table>\n</div>\n"
+            
+            # Add a note about additional information
+            output += "<p class='project-info'>You can ask for more details about specific projects by mentioning the project name or its attributes.</p>"
+            
+            print("HTML table generated successfully")
             return output
         except Exception as e:
+            print(f"Error generating HTML table: {e}")
             return f"Error retrieving projects: {e}"
 
     def get_projects_tool(self):

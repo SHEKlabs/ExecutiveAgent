@@ -26,9 +26,15 @@ class SimpleAgent:
         # Create a prompt template that includes agent_scratchpad
         prompt = ChatPromptTemplate.from_messages([
             ("system", """You are an Executive Assistant AI that helps manage projects and tasks.
-You have access to Google Sheets data containing project information.
-Be concise, helpful, and professional in your responses.
-Always use the tools available to you when responding to questions about projects."""),
+        You have access to Google Sheets data containing project information.
+        Be concise, helpful, and professional in your responses.
+        Always use the tools available to you when responding to questions about projects.
+
+        When displaying project information:
+        1. Present data in the exact table format it's provided to you
+        2. Maintain the markdown table structure for readability
+        3. Don't reformat or simplify the data structure provided by the tools
+        4. If a user asks for specific details about projects, use the SearchProjects tool"""),
             MessagesPlaceholder(variable_name="chat_history"),
             ("human", "{input}"),
             MessagesPlaceholder(variable_name="agent_scratchpad"),
