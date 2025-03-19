@@ -1,0 +1,129 @@
+/* Base styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    color: #343a40;
+}
+
+/* Header styles */
+header h1 {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+/* Project list styles */
+.list-group-item {
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+}
+
+.list-group-item:hover {
+    background-color: #f1f8ff;
+    border-left: 3px solid #007bff;
+}
+
+.list-group-item.active {
+    background-color: #e9f5ff;
+    color: #0056b3;
+    border-left: 3px solid #007bff;
+    border-color: #c2e0ff;
+}
+
+/* Project item styles */
+.project-item {
+    margin-bottom: 8px;
+    padding: 12px 15px;
+    border-radius: 5px;
+}
+
+.project-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.project-category {
+    display: inline-block;
+    font-size: 0.8rem;
+    padding: 2px 8px;
+    background-color: #e9ecef;
+    border-radius: 12px;
+    margin-right: 5px;
+}
+
+.project-owner {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-top: 8px;
+}
+
+/* Tags styling */
+.tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    padding: 1px 8px;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    margin-right: 4px;
+    margin-bottom: 4px;
+    color: #505050;
+}
+
+/* Project details styles */
+#projectDetails {
+    padding: 10px;
+}
+
+.detail-section {
+    margin-bottom: 15px;
+}
+
+.detail-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #495057;
+    margin-bottom: 5px;
+}
+
+.detail-value {
+    font-size: 0.95rem;
+}
+
+/* Modal styles */
+.modal-header {
+    background-color: #f5f5f5;
+}
+
+/* Buttons */
+.btn-action {
+    margin-right: 5px;
+}
+
+.action-buttons {
+    margin-top: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .col-md-4 {
+        margin-top: 20px;
+    }
+}
+
+/* Loading spinner */
+.spinner-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+}
+
+/* Error messages */
+.error-message {
+    color: #dc3545;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    margin-bottom: 15px;
+} 
