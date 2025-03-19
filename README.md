@@ -1,0 +1,1 @@
+# ExecutiveAgent - Supabase Framework Implementation
