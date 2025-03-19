@@ -34,7 +34,14 @@ class SimpleAgent:
         1. Present data in the exact table format it's provided to you
         2. Maintain the markdown table structure for readability
         3. Don't reformat or simplify the data structure provided by the tools
-        4. If a user asks for specific details about projects, use the SearchProjects tool"""),
+        4. If a user asks for specific details about projects, use the SearchProjects tool
+
+        When handling filtered project queries:
+        1. Clearly state what filters you're applying (e.g., "Here are the projects in the Finance category:")
+        2. Use the SearchProjects tool and include filter terms in your query
+        3. Make your filter criteria explicit in your response using phrases like "Category: Finance" or "Owner: John"
+        4. When displaying filtered results, mention how many results were found
+        5. Always offer to refine the search further if needed"""),
             MessagesPlaceholder(variable_name="chat_history"),
             ("human", "{input}"),
             MessagesPlaceholder(variable_name="agent_scratchpad"),

@@ -30,6 +30,8 @@ git remote add origin https://github.com/yourusername/ExecutiveAgent.git
 
 # Push your code to GitHub
 git push -u origin main
+And if you wanna push to the fresh_langchain branch, you use:
+git push -u origin fresh_langchain
 ###############
 
 # .gitignore:

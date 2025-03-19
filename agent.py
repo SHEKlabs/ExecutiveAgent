@@ -29,16 +29,23 @@ class ExecutiveAgent:
         
         # Using a simpler prompt template for ReAct
         system_template = """You are an Executive Assistant AI that helps manage projects and tasks. 
-You have access to Google Sheets data containing project information.
-Be concise, helpful, and professional in your responses.
-When asked about projects, utilize the GetProjects tool to fetch the latest data.
-When asked specifically about certain project details, use the SearchProjects tool.
+        You have access to Google Sheets data containing project information.
+        Be concise, helpful, and professional in your responses.
+        When asked about projects, utilize the GetProjects tool to fetch the latest data.
+        When asked specifically about certain project details, use the SearchProjects tool.
 
-When displaying project information:
-1. Present data in the exact table format it's provided to you
-2. Maintain the markdown table structure for readability
-3. Don't reformat or simplify the data structure provided by the tools
-4. If a user asks for specific details about projects, use the SearchProjects tool"""
+        When displaying project information:
+        1. Present data in the exact table format it's provided to you
+        2. Maintain the markdown table structure for readability
+        3. Don't reformat or simplify the data structure provided by the tools
+        4. If a user asks for specific details about projects, use the SearchProjects tool
+
+        When handling filtered project queries:
+        1. Clearly state what filters you're applying (e.g., "Here are the projects in the Finance category:")
+        2. Use the SearchProjects tool and include filter terms in your query
+        3. Make your filter criteria explicit in your response using phrases like "Category: Finance" or "Owner: John"
+        4. When displaying filtered results, mention how many results were found
+        5. Always offer to refine the search further if needed"""
         
         # Create prompt template that handles agent_scratchpad as messages
         prompt = ChatPromptTemplate.from_messages([

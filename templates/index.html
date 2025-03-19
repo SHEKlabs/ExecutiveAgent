@@ -294,6 +294,54 @@
             font-size: 12px;
             opacity: 0.5;
         }
+
+        /* Add this to the style section in index.html */
+        /* Filter information styles */
+        .filter-info {
+            background-color: #f0f7ff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #333;
+            border-left: 3px solid #4285f4;
+        }
+
+        /* Add this for empty results styling */
+        .project-table-container .empty-results {
+            padding: 30px;
+            text-align: center;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            color: #666;
+            font-style: italic;
+            margin: 20px 0;
+        }
+
+        /* Style for selected rows */
+        .project-table tbody tr.selected-row {
+            background-color: #e3f2fd !important;
+            border-left: 3px solid #2196F3;
+        }
+
+        /* Hover styles for the View Projects button */
+        .view-projects-button {
+            transition: all 0.2s ease;
+            border: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        }
+
+        .view-projects-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.16);
+        }
+
+        /* Make buttons more visible in chat */
+        .message .view-projects-button {
+            margin-top: 12px;
+            margin-bottom: 5px;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
@@ -383,125 +431,6 @@
 
         // Add a flag to log responses for debugging
         let debugMode = true;
-
-        messageForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const message = messageInput.value.trim();
-            if (!message) return;
-            
-            // Add user message to chat
-            const userMessageElement = document.createElement('div');
-            userMessageElement.className = 'message user-message';
-            userMessageElement.textContent = message;
-            chatContainer.appendChild(userMessageElement);
-            
-            messageInput.value = '';
-            
-            // Show typing indicator
-            const typingIndicator = showTypingIndicator();
-            
-            // Prepare form data
-            const formData = new FormData();
-            formData.append('message', message);
-            formData.append('stream', streamingCheckbox.checked ? 'true' : 'false');
-            
-            try {
-                const response = await fetch('/chat', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                // Handle streaming or regular response
-                if (streamingCheckbox.checked) {
-                    // Streaming logic...
-                    // (Keep your existing streaming code)
-                } else {
-                    // Regular response
-                    const data = await response.json();
-                    
-                    // Debug log
-                    if (debugMode) {
-                        console.log("Response data:", data);
-                        console.log("Contains HTML?", data.contains_html);
-                    }
-                    
-                    // Create message element
-                    const assistantMessageElement = document.createElement('div');
-                    assistantMessageElement.className = 'message assistant-message';
-                    
-                    // Check if response contains HTML
-                    if (data.contains_html) {
-                        console.log("Rendering HTML content");
-                        assistantMessageElement.innerHTML = data.response;
-                        
-                        // Apply styling to tables
-                        setTimeout(() => {
-                            const tables = assistantMessageElement.querySelectorAll('table.project-table');
-                            if (tables.length > 0) {
-                                console.log("Found tables to style:", tables.length);
-                            } else {
-                                console.log("No tables found with class .project-table");
-                                console.log("HTML content:", assistantMessageElement.innerHTML);
-                            }
-                            
-                            // Style tables and add interactivity
-                            tables.forEach(table => {
-                                // Add hover effect for rows
-                                const rows = table.querySelectorAll('tbody tr');
-                                rows.forEach(row => {
-                                    row.addEventListener('mouseover', function() {
-                                        this.style.backgroundColor = '#f5f5f5';
-                                    });
-                                    row.addEventListener('mouseout', function() {
-                                        this.style.backgroundColor = '';
-                                    });
-                                });
-                            });
-                        }, 10);
-                    } else {
-                        assistantMessageElement.textContent = data.response;
-                    }
-                    
-                    // Remove typing indicator and add message
-                    removeTypingIndicator(typingIndicator);
-                    chatContainer.appendChild(assistantMessageElement);
-                    chatContainer.scrollTop = chatContainer.scrollHeight;
-
-                    // After adding the message to the chat
-                    if (!streamingCheckbox.checked && message.toLowerCase().includes('project')) {
-                        setTimeout(() => {
-                            // Check the last message for project listings
-                            const lastMessage = chatContainer.querySelector('.message.assistant-message:last-child');
-                            if (lastMessage && lastMessage.textContent.includes('projects')) {
-                                console.log("Adding projects button via direct method");
-                                
-                                // Create the button
-                                const viewProjectsBtn = document.createElement('button');
-                                viewProjectsBtn.className = 'view-projects-button';
-                                viewProjectsBtn.textContent = 'View Projects Table';
-                                viewProjectsBtn.onclick = loadAndShowProjectsTable;
-                                
-                                // Add it to the message
-                                lastMessage.appendChild(document.createElement('br'));
-                                lastMessage.appendChild(viewProjectsBtn);
-                            }
-                        }, 500); // Delay to make sure the message is fully rendered
-                    }
-                }
-            } catch (error) {
-                console.error("Error in chat request:", error);
-                
-                // Remove typing indicator
-                removeTypingIndicator(typingIndicator);
-                
-                // Add error message
-                const errorMessageElement = document.createElement('div');
-                errorMessageElement.className = 'message assistant-message';
-                errorMessageElement.textContent = `Error: ${error.message}`;
-                chatContainer.appendChild(errorMessageElement);
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-            }
-        });
         
         // Initialize with a welcome message
         window.onload = function() {
@@ -522,33 +451,74 @@
         const viewProjectsButtonTemplate = document.getElementById('view-projects-button-template');
 
         // Function to create and insert "View Projects Table" button after showing a list of projects
+        // Update the button creation function to ensure it uses filters from the bot's response
         function addViewProjectsButton(message) {
             console.log("Checking if we should add a View Projects button");
             
-            // Force button to appear any time projects are shown (more reliable)
-            if (message.includes("projects") && (
-                message.includes("Here are your") || 
-                message.includes("Project") || 
-                message.includes("Category") ||
-                message.includes("Tags") ||
-                message.includes("My Finance App")
-            )) {
-                console.log("Projects listing detected, adding View Projects button");
+            const projectIndicators = [
+                'projects', 'category', 'owner', 'tag', 
+                'filtered', 'search', 'result', 'found',
+                '#ATOM', '#AI', '#Agent', '#Foundation' // Add common hashtags
+            ];
+            
+            // Force button to appear for project-related messages
+            const containsProjectInfo = projectIndicators.some(term => 
+                message.toLowerCase().includes(term.toLowerCase())
+            );
+            
+            if (containsProjectInfo) {
+                console.log("Projects info detected, adding View Projects button");
                 
-                // Create button directly (don't use template since it might be causing issues)
+                // Extract filters from the message
+                let messageFilters = parseFiltersFromMessage(message);
+                
+                // If the message contains table data, also try to extract filters from the table
+                if (message.includes('|') && message.includes('---')) {
+                    const tableFilters = extractFiltersFromTableData(message);
+                    
+                    // Merge the filters, preferring non-empty values from tableFilters
+                    Object.keys(tableFilters).forEach(key => {
+                        if (tableFilters[key] && !messageFilters[key]) {
+                            messageFilters[key] = tableFilters[key];
+                        }
+                    });
+                }
+                
+                // Update current filters if we found any
+                if (messageFilters.query || messageFilters.category || messageFilters.owner || messageFilters.tags) {
+                    // Only update non-empty values
+                    Object.keys(messageFilters).forEach(key => {
+                        if (messageFilters[key]) {
+                            currentFilters[key] = messageFilters[key];
+                        }
+                    });
+                    console.log("Updated current filters for button:", currentFilters);
+                }
+                
+                // Create button directly
                 const viewProjectsBtn = document.createElement('button');
                 viewProjectsBtn.className = 'view-projects-button';
-                viewProjectsBtn.textContent = 'View Projects Table';
-                viewProjectsBtn.onclick = loadAndShowProjectsTable;
+                
+                // Change button text based on whether filters are applied
+                const hasFilters = currentFilters.query || currentFilters.category || 
+                                currentFilters.owner || currentFilters.tags;
+                
+                viewProjectsBtn.textContent = hasFilters ? 
+                    'View Filtered Projects Table' : 'View Projects Table';
+                
+                // Use the current filters when clicking the button
+                viewProjectsBtn.onclick = function() {
+                    loadAndShowProjectsTable({...currentFilters});
+                };
                 
                 // Add to the last message
                 const lastMessage = chatContainer.querySelector('.message.assistant-message:last-child');
-                if (lastMessage) {
+                if (lastMessage && !lastMessage.querySelector('.view-projects-button')) {
                     console.log("Found last message to append button to");
                     lastMessage.appendChild(document.createElement('br'));
                     lastMessage.appendChild(viewProjectsBtn);
                 } else {
-                    console.log("Could not find last message");
+                    console.log("Could not find last message or button already exists");
                 }
             } else {
                 console.log("No projects listing detected in message");
@@ -556,9 +526,112 @@
         }
 
         // Function to load and display the projects table
-        // Replace the existing loadAndShowProjectsTable function with this improved version
-        function loadAndShowProjectsTable() {
-            console.log("Loading projects table...");
+        // Replace the existing loadAndShowProjectsTable function with this improved version// Store the latest filters from the agent response
+        let currentFilters = {
+            query: "",
+            category: "",
+            owner: "",
+            tags: ""
+        };
+
+        // Improve the filter parsing function to handle hashtags and specific formats from the bot's responses
+        function parseFiltersFromMessage(message) {
+            const filters = {
+                query: "",
+                category: "",
+                owner: "",
+                tags: ""
+            };
+            
+            // Look for explicit hashtags which often indicate tags or categories
+            const hashtagMatch = message.match(/#([A-Za-z0-9_]+)/g);
+            if (hashtagMatch) {
+                // If we find hashtags like #ATOM, use them as tags by default
+                filters.tags = hashtagMatch.join(' ').replace(/#/g, '');
+            }
+            
+            // Look for explicit category mentions
+            const categoryMatch = message.match(/category[:\s]+['"]?([^'".,\s]+(?:\s+[^'".,\s]+)*)['"]?/i) || 
+                                message.match(/Category\/Section[:\s]+['"]?([^'".,\s]+(?:\s+[^'".,\s]+)*)['"]?/i);
+            if (categoryMatch && categoryMatch[1]) {
+                filters.category = categoryMatch[1].trim();
+            }
+            
+            // Look for owner mentions
+            const ownerMatch = message.match(/owner[:\s]+['"]?([^'".,\s]+(?:\s+[^'".,\s]+)*)['"]?/i);
+            if (ownerMatch && ownerMatch[1]) {
+                filters.owner = ownerMatch[1].trim();
+            }
+            
+            // Look for phrases like "Here are the X projects" or "found X projects"
+            const projectTypeMatch = message.match(/(?:here are the|found)\s+([^'".,\s]+(?:\s+[^'".,\s]+)*)\s+projects/i);
+            if (projectTypeMatch && projectTypeMatch[1] && !filters.category && !filters.tags) {
+                // If it looks like a category name, use it as category
+                if (projectTypeMatch[1].includes('#')) {
+                    filters.category = projectTypeMatch[1].trim();
+                } else {
+                    filters.query = projectTypeMatch[1].trim();
+                }
+            }
+            
+            console.log("Parsed filters from message:", filters);
+            return filters;
+        }
+
+        // Add a function to extract filters from the table data shown in the bot's response
+        function extractFiltersFromTableData(message) {
+            // This handles tables that might be in the bot response
+            const filters = {
+                query: "",
+                category: "",
+                owner: "",
+                tags: ""
+            };
+            
+            // Extract category from table rows if they all have the same category
+            const categoryMatches = message.match(/\|\s+#([A-Za-z0-9_]+)\s+\|/g);
+            if (categoryMatches && categoryMatches.length > 0) {
+                // Extract just the category name without the | and #
+                const category = categoryMatches[0].replace(/\|\s+#/, '').replace(/\s+\|/, '').trim();
+                if (category) {
+                    filters.category = category;
+                }
+            }
+            
+            // Extract tags from tables - looking for consistent tags across rows
+            const tagMatches = message.match(/\|\s+#([A-Za-z0-9_\s#]+)\s+\|/g);
+            if (tagMatches && tagMatches.length > 0) {
+                // Find common tags across all rows
+                const commonTags = [];
+                tagMatches.forEach(tagCell => {
+                    const tags = tagCell.match(/#([A-Za-z0-9_]+)/g);
+                    if (tags) {
+                        tags.forEach(tag => {
+                            // Remove the # for filtering
+                            const cleanTag = tag.replace('#', '');
+                            if (!commonTags.includes(cleanTag)) {
+                                commonTags.push(cleanTag);
+                            }
+                        });
+                    }
+                });
+                
+                if (commonTags.length > 0) {
+                    filters.tags = commonTags.join(' ');
+                }
+            }
+            
+            console.log("Extracted filters from table data:", filters);
+            return filters;
+        }
+
+        // Function to load and display the projects table with filters
+        function loadAndShowProjectsTable(filters = null) {
+            console.log("Loading projects table with filters:", filters);
+            
+            // Use provided filters or current filters
+            const filterToUse = filters || currentFilters;
+            console.log("Using filters:", filterToUse);
             
             // Show modal with loading indicator
             const projectsModal = document.getElementById('projects-modal');
@@ -575,58 +648,202 @@
             // Add fix for close button immediately after displaying modal
             setTimeout(fixModalCloseButton, 100);
             
-            // Fetch the projects table HTML from our direct API endpoint
-            fetch('/direct/projects_table')
-                .then(response => {
-                    console.log("Response received:", response);
-                    return response.json();
+            // Decide which endpoint to use based on whether filters are applied
+            const hasFilters = filterToUse.query || filterToUse.category || filterToUse.owner || filterToUse.tags;
+            
+            if (hasFilters) {
+                // Use the filtered endpoint
+                fetch('/direct/filtered_projects', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(filterToUse)
                 })
+                .then(response => response.json())
                 .then(data => {
-                    console.log("Data received:", data);
-                    
                     if (data.success) {
-                        // Display the HTML content
                         modalContent.innerHTML = data.html_content;
-                        console.log("Table content loaded into modal");
+                        console.log("Filtered table content loaded into modal");
                         
-                        // Add hover effects and interactivity to the table
-                        const tableRows = modalContent.querySelectorAll('table.project-table tbody tr');
-                        console.log("Found rows:", tableRows.length);
-                        
-                        tableRows.forEach(row => {
-                            // Add hover effect
-                            row.addEventListener('mouseover', function() {
-                                this.style.backgroundColor = '#e9f7fe';
-                            });
-                            
-                            row.addEventListener('mouseout', function() {
-                                this.style.backgroundColor = '';
-                            });
-                            
-                            // For future: Add click handler for row editing
-                            row.addEventListener('click', function() {
-                                // Store the selected project for potential editing
-                                const projectId = this.getAttribute('data-row-id');
-                                const projectName = this.getAttribute('data-project-name');
-                                console.log(`Selected project: ${projectName} (ID: ${projectId})`);
-                                
-                                // In the future, this could open an edit form
-                                // For now, just highlight the row
-                                tableRows.forEach(r => r.classList.remove('selected-row'));
-                                this.classList.add('selected-row');
-                            });
-                        });
+                        // Apply interactivity to the table rows
+                        setupTableInteractivity(modalContent);
                     } else {
-                        // Show error message
-                        modalContent.innerHTML = `<div class="error-message">Error loading projects: ${data.error || 'Unknown error'}</div>`;
-                        console.error("Error from server:", data.error);
+                        modalContent.innerHTML = `<div class="error-message">Error loading filtered projects: ${data.error || 'Unknown error'}</div>`;
                     }
                 })
                 .catch(error => {
                     console.error("Fetch error:", error);
                     modalContent.innerHTML = `<div class="error-message">Error: ${error.message}</div>`;
                 });
+            } else {
+                // Use the original endpoint for all projects
+                fetch('/direct/projects_table')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            modalContent.innerHTML = data.html_content;
+                            console.log("Full table content loaded into modal");
+                            
+                            // Apply interactivity to the table rows
+                            setupTableInteractivity(modalContent);
+                        } else {
+                            modalContent.innerHTML = `<div class="error-message">Error loading projects: ${data.error || 'Unknown error'}</div>`;
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Fetch error:", error);
+                        modalContent.innerHTML = `<div class="error-message">Error: ${error.message}</div>`;
+                    });
+            }
         }
+
+        // Helper function to add interactivity to table rows
+        function setupTableInteractivity(container) {
+            const tableRows = container.querySelectorAll('table.project-table tbody tr');
+            console.log("Found rows:", tableRows.length);
+            
+            tableRows.forEach(row => {
+                // Add hover effect
+                row.addEventListener('mouseover', function() {
+                    this.style.backgroundColor = '#e9f7fe';
+                });
+                
+                row.addEventListener('mouseout', function() {
+                    this.style.backgroundColor = '';
+                });
+                
+                // For future: Add click handler for row editing
+                row.addEventListener('click', function() {
+                    // Store the selected project for potential editing
+                    const projectId = this.getAttribute('data-row-id');
+                    const projectName = this.getAttribute('data-project-name');
+                    console.log(`Selected project: ${projectName} (ID: ${projectId})`);
+                    
+                    // In the future, this could open an edit form
+                    // For now, just highlight the row
+                    tableRows.forEach(r => r.classList.remove('selected-row'));
+                    this.classList.add('selected-row');
+                });
+            });
+        }
+
+        // Update the message handler to capture filters from the agent's response
+        // This is the only messageForm event listener you should have
+        messageForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            if (!message) return;
+            
+            // Add user message to chat
+            appendMessage(message, true);
+            
+            messageInput.value = '';
+            
+            // Check if the message is asking for filtered projects
+            if (message.toLowerCase().includes('project') && (
+                message.toLowerCase().includes('show') || 
+                message.toLowerCase().includes('filter') || 
+                message.toLowerCase().includes('search') ||
+                message.toLowerCase().includes('find') ||
+                message.toLowerCase().includes('list') ||
+                message.match(/#[A-Za-z0-9_]+/g) // Match hashtags like #ATOM
+            )) {
+                // Parse potential filters from the user message
+                const newFilters = parseFiltersFromMessage(message);
+                
+                // Update current filters with non-empty values
+                Object.keys(newFilters).forEach(key => {
+                    if (newFilters[key]) {
+                        currentFilters[key] = newFilters[key];
+                    }
+                });
+                
+                console.log("Updated current filters based on user message:", currentFilters);
+            }
+            
+            // Show typing indicator
+            const typingIndicator = showTypingIndicator();
+            
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('message', message);
+            formData.append('stream', streamingCheckbox.checked ? 'true' : 'false');
+            
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                // Handle streaming or regular response
+                if (streamingCheckbox.checked) {
+                    // Your existing streaming code here
+                } else {
+                    // Regular response
+                    const data = await response.json();
+                    
+                    // Debug log
+                    if (debugMode) {
+                        console.log("Response data:", data);
+                        console.log("Contains HTML?", data.contains_html);
+                    }
+                    
+                    // Remove typing indicator and display assistant's message
+                    removeTypingIndicator(typingIndicator);
+                    const assistantMessage = data.response;
+                    appendMessage(assistantMessage, false, data.contains_html);
+                    
+                    // Check if response contains information about projects
+                    if (assistantMessage.toLowerCase().includes('project')) {
+                        // If the message contains a table representation (markdown or HTML)
+                        const hasTable = assistantMessage.includes('|') && 
+                                        assistantMessage.includes('---');
+                        
+                        // Parse filters from the assistant's message
+                        let responseFilters = parseFiltersFromMessage(assistantMessage);
+                        
+                        // If there's a table, also try to extract filters from it
+                        if (hasTable) {
+                            const tableFilters = extractFiltersFromTableData(assistantMessage);
+                            
+                            // Merge filters, preferring non-empty values from table
+                            Object.keys(tableFilters).forEach(key => {
+                                if (tableFilters[key] && !responseFilters[key]) {
+                                    responseFilters[key] = tableFilters[key];
+                                }
+                            });
+                        }
+                        
+                        // Update current filters with any non-empty values found
+                        let filtersUpdated = false;
+                        Object.keys(responseFilters).forEach(key => {
+                            if (responseFilters[key]) {
+                                currentFilters[key] = responseFilters[key];
+                                filtersUpdated = true;
+                            }
+                        });
+                        
+                        if (filtersUpdated) {
+                            console.log("Updated filters from assistant response:", currentFilters);
+                        }
+                        
+                        // Add the button with updated filters
+                        setTimeout(() => {
+                            addViewProjectsButton(assistantMessage);
+                        }, 500);
+                    }
+                }
+            } catch (error) {
+                console.error("Error in chat request:", error);
+                
+                // Remove typing indicator
+                removeTypingIndicator(typingIndicator);
+                
+                // Add error message
+                appendMessage(`Error: ${error.message}`, false);
+            }
+        });
 
         // Fix for the close button
         function fixModalCloseButton() {
@@ -699,8 +916,14 @@
 
         // Call this function when the page loads
         document.addEventListener('DOMContentLoaded', function() {
-            addViewProjectsButtonToSettings();
-            fixModalCloseButton();
+            const standaloneButton = document.getElementById('standalone-projects-button');
+            if (standaloneButton) {
+                standaloneButton.addEventListener('click', function() {
+                    loadAndShowProjectsTable(currentFilters);
+                });
+            }
+            
+            // Other initialization code...
         });
 
     </script>

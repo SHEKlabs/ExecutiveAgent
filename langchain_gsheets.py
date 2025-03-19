@@ -255,3 +255,129 @@ class GoogleSheetsConnector:
             func=self.search_projects,
             description="Search for specific project information. Input should be a detailed query about what project information you're looking for."
         )
+    
+    def get_filtered_projects(self, query="", category="", owner="", tags=""):
+        """
+        Get filtered project data as an HTML table string.
+        
+        Args:
+            query: General search query to match against all fields
+            category: Filter by specific category
+            owner: Filter by specific owner
+            tags: Filter by specific tags
+        
+        Returns:
+            Formatted HTML table with filtered project data
+        """
+        try:
+            sheet = self.client.open_by_key(self.sheet_id)
+            projects_tab = sheet.worksheet("Projects")
+            
+            # Retrieve all values including header row
+            all_values = projects_tab.get_all_values()
+            
+            if not all_values:
+                return "No projects found."
+            
+            # First row as header (column names)
+            header = all_values[0]
+            # Remaining rows as data
+            data_rows = all_values[1:]
+            
+            # Apply filters to data rows
+            filtered_rows = []
+            
+            for row in data_rows:
+                row_dict = dict(zip(header, row))
+                
+                # Check if the row matches all the filter criteria
+                matches = True
+                
+                # Check general query (search across all fields)
+                if query and not any(query.lower() in str(val).lower() for val in row_dict.values()):
+                    matches = False
+                
+                # Check category filter
+                if category and category.lower() not in row_dict.get('Category/Section', '').lower():
+                    matches = False
+                    
+                # Check owner filter
+                if owner and owner.lower() not in row_dict.get('Owner', '').lower():
+                    matches = False
+                    
+                # Check tags filter
+                if tags and tags.lower() not in row_dict.get('Tag', '').lower():
+                    matches = False
+                    
+                if matches:
+                    filtered_rows.append(row)
+            
+            # Debug output
+            print(f"Filtered from {len(data_rows)} to {len(filtered_rows)} projects")
+            
+            # Format the output as HTML table
+            output = "<div class='project-table-container'>\n"
+            
+            # Add a header with filter information
+            applied_filters = []
+            if query:
+                applied_filters.append(f"Search: '{query}'")
+            if category:
+                applied_filters.append(f"Category: '{category}'")
+            if owner:
+                applied_filters.append(f"Owner: '{owner}'")
+            if tags:
+                applied_filters.append(f"Tags: '{tags}'")
+                
+            filter_text = ", ".join(applied_filters) if applied_filters else "No filters applied"
+            output += f"<h2>Projects List ({len(filtered_rows)} projects)</h2>\n"
+            output += f"<p class='filter-info'>Filters applied: {filter_text}</p>\n"
+            
+            # Add table
+            output += "<table class='project-table' id='projects-table'>\n"
+            
+            # Add table header
+            output += "<thead>\n<tr>\n"
+            output += "<th>#</th>\n"
+            output += "<th>Project</th>\n"
+            output += "<th>Category</th>\n"
+            output += "<th>Owner</th>\n"
+            output += "<th>Tags</th>\n"
+            output += "<th>Connected Project</th>\n"
+            output += "</tr>\n</thead>\n"
+            
+            # Add table body
+            output += "<tbody>\n"
+            for i, row in enumerate(filtered_rows, start=1):
+                row_dict = dict(zip(header, row))
+                
+                # Extract values for each column (with fallbacks if column doesn't exist)
+                project = row_dict.get('Project', 'N/A')
+                category = row_dict.get('Category/Section', 'N/A')
+                owner = row_dict.get('Owner', 'N/A')
+                tags = row_dict.get('Tag', 'N/A')
+                connected = row_dict.get('Connected Project', '')
+                
+                # Add row to table with data attributes for future interactivity
+                output += f"<tr data-row-id='{i}' data-project-name='{project}'>\n"
+                output += f"<td>{i}</td>\n"
+                output += f"<td>{project}</td>\n"
+                output += f"<td>{category}</td>\n"
+                output += f"<td>{owner}</td>\n"
+                output += f"<td>{tags}</td>\n"
+                output += f"<td>{connected}</td>\n"
+                output += "</tr>\n"
+            
+            output += "</tbody>\n</table>\n</div>\n"
+            
+            # Add a note if no results were found
+            if not filtered_rows:
+                output += "<p class='project-info'>No projects found matching your criteria. Try adjusting your filters.</p>"
+            else:
+                output += "<p class='project-info'>You can ask for more details about specific projects by mentioning the project name or its attributes.</p>"
+            
+            print("Filtered HTML table generated successfully")
+            return output
+        except Exception as e:
+            print(f"Error generating filtered HTML table: {e}")
+            return f"Error retrieving filtered projects: {e}"

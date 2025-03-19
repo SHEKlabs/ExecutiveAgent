@@ -73,3 +73,6 @@ Icon
 
 # Specific files
 bfg-1.15.0.jarbfg-1.15.0.jar
+.env
+credentials/*
+__pycache__/

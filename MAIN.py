@@ -129,6 +129,53 @@ def direct_projects_table():
             "error": str(e)
         })
 
+# Add this to MAIN.py
+
+@app.route("/direct/filtered_projects", methods=["POST"])
+def filtered_projects_table():
+    """
+    Direct access to filtered projects table
+    Returns HTML table filtered by the provided criteria
+    """
+    try:
+        # Get filter criteria from request
+        filter_params = request.json or {}
+        query = filter_params.get('query', '')
+        category = filter_params.get('category', '')
+        owner = filter_params.get('owner', '')
+        tags = filter_params.get('tags', '')
+        
+        # Log the received filters
+        print(f"Filtering projects with: query={query}, category={category}, owner={owner}, tags={tags}")
+        
+        # Call the filtered version of get_projects
+        html_table = sheets_connector.get_filtered_projects(
+            query=query,
+            category=category,
+            owner=owner,
+            tags=tags
+        )
+        
+        # Return HTML content
+        return jsonify({
+            "success": True,
+            "html_content": html_table,
+            "filters_applied": {
+                "query": query,
+                "category": category,
+                "owner": owner,
+                "tags": tags
+            }
+        })
+    except Exception as e:
+        print(f"Error generating filtered projects table: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        })
+
 if __name__ == "__main__":
     # Check if we're running in test mode
     import sys
