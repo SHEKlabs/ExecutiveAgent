@@ -17,16 +17,27 @@ def after_request(response):
 @app.route('/projects', methods=['GET'])
 def get_projects():
     """Get all projects or filter by query parameters"""
-    category = request.args.get('category')
-    tag = request.args.get('tag')
-    owner = request.args.get('owner')
+    filters = {}
     
+    # Get all filter parameters
+    category = request.args.get('category')
+    owner = request.args.get('owner')
+    tags = request.args.get('tags')
+    contributors = request.args.get('contributors')
+    
+    # Build filters dictionary
     if category:
-        projects = project_manager.get_projects_by_category(category)
-    elif tag:
-        projects = project_manager.get_projects_by_tag(tag)
-    elif owner:
-        projects = project_manager.get_projects_by_owner(owner)
+        filters['category'] = category
+    if owner:
+        filters['owner'] = owner
+    if tags:
+        filters['tags'] = [tag.strip() for tag in tags.split(',')]
+    if contributors:
+        filters['contributors'] = [contributor.strip() for contributor in contributors.split(',')]
+    
+    # Use the filter_projects method if we have any filters
+    if filters:
+        projects = project_manager.filter_projects(filters)
     else:
         projects = project_manager.get_all_projects()
     
@@ -75,4 +86,4 @@ def delete_project(project_id):
     return jsonify({"message": "Project deleted successfully"})
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000) 
+    app.run(debug=True, port=5001) 

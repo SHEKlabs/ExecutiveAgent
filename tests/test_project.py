@@ -138,5 +138,25 @@ class TestProjectManager(unittest.TestCase):
         )
         self.assertEqual(result[0]['name'], 'Updated Project')
 
+    @patch('src.project.SupabaseClient')
+    def test_get_projects_by_contributors(self, mock_client):
+        """Test retrieving projects by contributors"""
+        # Setup mock
+        mock_instance = mock_client.return_value
+        mock_response = MagicMock()
+        mock_response.data = [self.sample_project]
+        mock_instance.get_data.return_value = mock_response
+        
+        # Call the function
+        projects = self.project_manager.get_projects_by_contributors(['contributor1', 'contributor2'])
+        
+        # Assertions
+        mock_instance.get_data.assert_called_once_with(
+            'projects', 
+            filters=[('Contributors', 'cs', ['contributor1', 'contributor2'])]
+        )
+        self.assertEqual(len(projects), 1)
+        self.assertEqual(projects[0]['name'], 'Test Project')
+
 if __name__ == '__main__':
     unittest.main() 
