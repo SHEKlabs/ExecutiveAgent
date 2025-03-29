@@ -40,9 +40,13 @@
                                     <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Filter</button>
                                     <ul class="dropdown-menu">
                                         <li><a class="dropdown-item filter-option" data-filter="category">By Category</a></li>
-                                        <li><a class="dropdown-item filter-option" data-filter="tag">By Tag</a></li>
+                                        <li><a class="dropdown-item filter-option" data-filter="tags">By Tag</a></li>
                                         <li><a class="dropdown-item filter-option" data-filter="owner">By Owner</a></li>
                                     </ul>
+                                </div>
+                                <!-- Filter tags display -->
+                                <div id="activeFilters" class="d-flex flex-wrap gap-2 mb-2" style="display: none;">
+                                    <!-- Active filters will be displayed here -->
                                 </div>
                             </div>
                         </div>
@@ -144,6 +148,40 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" id="saveProjectBtn">Save Project</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Modal -->
+    <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="filterModalLabel">Filter by Tag</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label id="filterInputLabel" for="filterInput" class="form-label">Enter tag to filter by:</label>
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control" id="filterInput" placeholder="Type and press Enter to add...">
+                            <button class="btn btn-outline-secondary" type="button" id="addFilterBtn">Add</button>
+                        </div>
+                        <div id="selectedFilters" class="selected-filters mt-3">
+                            <!-- Selected filter values will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="form-check me-auto">
+                        <input class="form-check-input" type="checkbox" id="matchAllFilters" checked>
+                        <label class="form-check-label" for="matchAllFilters">
+                            Match all filters (AND)
+                        </label>
+                    </div>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="applyFiltersBtn">Apply Filters</button>
                 </div>
             </div>
         </div>

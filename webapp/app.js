@@ -9,6 +9,12 @@ const saveProjectBtn = document.getElementById('saveProjectBtn');
 const projectSearch = document.getElementById('projectSearch');
 const searchBtn = document.getElementById('searchBtn');
 const filterOptions = document.querySelectorAll('.filter-option');
+const activeFilters = document.getElementById('activeFilters');
+const filterInput = document.getElementById('filterInput');
+const addFilterBtn = document.getElementById('addFilterBtn');
+const selectedFilters = document.getElementById('selectedFilters');
+const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+const matchAllFilters = document.getElementById('matchAllFilters');
 
 // Chat elements
 const chatMessages = document.getElementById('chatMessages');
@@ -17,19 +23,22 @@ const sendMessageBtn = document.getElementById('sendMessageBtn');
 const clearChatBtn = document.getElementById('clearChatBtn');
 const chatExampleLinks = document.querySelectorAll('.chat-example-link');
 
-// Bootstrap modal instance
+// Bootstrap modal instances
 let addProjectModal;
+let filterModal;
 
 // Current filter state
-let currentFilter = {
+let currentFilters = {
     type: null,
-    value: null
+    values: [],
+    matchAll: true
 };
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Bootstrap modal
+    // Initialize Bootstrap modals
     addProjectModal = new bootstrap.Modal(document.getElementById('addProjectModal'));
+    filterModal = new bootstrap.Modal(document.getElementById('filterModal'));
     
     // Load all projects when the page loads
     loadProjects();
@@ -68,20 +77,103 @@ function setupEventListeners() {
         }
     });
     
-    // Filter options
+    // Filter options - show the filter modal
     filterOptions.forEach(option => {
         option.addEventListener('click', (e) => {
             const filterType = e.target.dataset.filter;
-            const filterValue = prompt(`Enter ${filterType} to filter by:`);
             
-            if (filterValue && filterValue.trim()) {
-                currentFilter = {
-                    type: filterType,
-                    value: filterValue.trim()
-                };
-                loadFilteredProjects(filterType, filterValue.trim());
+            // Set filter modal title and label based on the selected filter type
+            const filterModalLabel = document.getElementById('filterModalLabel');
+            const filterInputLabel = document.getElementById('filterInputLabel');
+            
+            // Clear any previous filter values
+            selectedFilters.innerHTML = '';
+            filterInput.value = '';
+            
+            // Check if we're reopening the same filter type
+            if (currentFilters.type === filterType && currentFilters.values.length > 0) {
+                // Restore existing filter values
+                currentFilters.values.forEach(value => {
+                    // Add to the UI
+                    const filterTag = document.createElement('div');
+                    filterTag.className = 'filter-tag';
+                    filterTag.innerHTML = `
+                        ${value}
+                        <span class="remove-tag" data-value="${value}">&times;</span>
+                    `;
+                    
+                    // Add click handler to remove button
+                    const removeBtn = filterTag.querySelector('.remove-tag');
+                    removeBtn.addEventListener('click', (e) => {
+                        const valueToRemove = e.target.dataset.value;
+                        // Remove from UI
+                        e.target.parentElement.remove();
+                        // Remove from array
+                        currentFilters.values = currentFilters.values.filter(v => v !== valueToRemove);
+                    });
+                    
+                    selectedFilters.appendChild(filterTag);
+                });
+                
+                // Set the match all checkbox based on current state
+                matchAllFilters.checked = currentFilters.matchAll;
+            } else {
+                // Set the filter type and reset values
+                currentFilters.type = filterType;
+                currentFilters.values = [];
+                
+                // Reset the match all checkbox
+                matchAllFilters.checked = true;
             }
+            
+            // Update modal title and label based on filter type
+            switch(filterType) {
+                case 'tags':
+                    filterModalLabel.textContent = 'Filter by Tags';
+                    filterInputLabel.textContent = 'Enter tag to filter by:';
+                    break;
+                case 'category':
+                    filterModalLabel.textContent = 'Filter by Category';
+                    filterInputLabel.textContent = 'Enter category to filter by:';
+                    break;
+                case 'owner':
+                    filterModalLabel.textContent = 'Filter by Owner';
+                    filterInputLabel.textContent = 'Enter owner to filter by:';
+                    break;
+                default:
+                    filterModalLabel.textContent = `Filter by ${filterType}`;
+                    filterInputLabel.textContent = `Enter ${filterType} to filter by:`;
+            }
+            
+            // Show the filter modal
+            filterModal.show();
         });
+    });
+    
+    // Add filter value when Enter is pressed in the filter input
+    filterInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            addFilterValue();
+        }
+    });
+    
+    // Add filter button
+    addFilterBtn.addEventListener('click', addFilterValue);
+    
+    // Apply filters button
+    applyFiltersBtn.addEventListener('click', () => {
+        if (currentFilters.values.length > 0) {
+            // Save match all setting
+            currentFilters.matchAll = matchAllFilters.checked;
+            
+            // Apply the filters
+            applyFilters();
+            
+            // Hide the modal
+            filterModal.hide();
+        } else {
+            alert('Please add at least one filter value.');
+        }
     });
     
     // Chat input - send on Enter key
@@ -119,6 +211,101 @@ function setupEventListeners() {
     });
 }
 
+// Add a filter value to the selected filters
+function addFilterValue() {
+    const value = filterInput.value.trim();
+    
+    if (value && !currentFilters.values.includes(value)) {
+        // Add to the currentFilters values array
+        currentFilters.values.push(value);
+        
+        // Add to the UI
+        const filterTag = document.createElement('div');
+        filterTag.className = 'filter-tag';
+        filterTag.innerHTML = `
+            ${value}
+            <span class="remove-tag" data-value="${value}">&times;</span>
+        `;
+        
+        // Add click handler to remove button
+        const removeBtn = filterTag.querySelector('.remove-tag');
+        removeBtn.addEventListener('click', (e) => {
+            const valueToRemove = e.target.dataset.value;
+            // Remove from UI
+            e.target.parentElement.remove();
+            // Remove from array
+            currentFilters.values = currentFilters.values.filter(v => v !== valueToRemove);
+        });
+        
+        selectedFilters.appendChild(filterTag);
+        filterInput.value = '';
+    }
+}
+
+// Apply the current filters
+function applyFilters() {
+    // Clear any existing active filters display
+    activeFilters.innerHTML = '';
+    
+    // If we have filters, show them
+    if (currentFilters.values.length > 0) {
+        // Show the active filters container
+        activeFilters.style.display = 'flex';
+        
+        // Create an active filter display
+        const activeFilter = document.createElement('div');
+        activeFilter.className = 'active-filter';
+        
+        // Format the filter label based on type
+        let filterLabel = '';
+        switch(currentFilters.type) {
+            case 'tags': filterLabel = 'Tags'; break;
+            case 'category': filterLabel = 'Category'; break;
+            case 'owner': filterLabel = 'Owner'; break;
+            default: filterLabel = currentFilters.type;
+        }
+        
+        // Match type text
+        const matchType = currentFilters.matchAll ? 'All of' : 'Any of';
+        
+        activeFilter.innerHTML = `
+            <span class="filter-label">${filterLabel}:</span>
+            <span class="match-type">${matchType}</span>
+            <span class="filter-values">${currentFilters.values.join(', ')}</span>
+            <span class="remove-filter" title="Remove filter">&times;</span>
+        `;
+        
+        // Add click handler to remove filter button
+        const removeFilterBtn = activeFilter.querySelector('.remove-filter');
+        removeFilterBtn.addEventListener('click', () => {
+            // Clear filters and reload all projects
+            clearFilters();
+        });
+        
+        activeFilters.appendChild(activeFilter);
+        
+        // Load filtered projects
+        loadFilteredProjects();
+    }
+}
+
+// Clear all filters
+function clearFilters() {
+    // Reset filter state
+    currentFilters = {
+        type: null,
+        values: [],
+        matchAll: true
+    };
+    
+    // Clear UI
+    activeFilters.innerHTML = '';
+    activeFilters.style.display = 'none';
+    
+    // Reload all projects
+    loadProjects();
+}
+
 // Load all projects
 async function loadProjects() {
     try {
@@ -140,11 +327,21 @@ async function loadProjects() {
 }
 
 // Load filtered projects
-async function loadFilteredProjects(filterType, filterValue) {
+async function loadFilteredProjects() {
     try {
         showLoading();
         
-        const response = await fetch(`${API_BASE_URL}/projects?${filterType}=${encodeURIComponent(filterValue)}`);
+        // Construct filter query parameters
+        const filterType = currentFilters.type;
+        const filterValues = currentFilters.values.join(',');
+        const matchAll = currentFilters.matchAll;
+        
+        // Build URL with filter parameters
+        const url = `${API_BASE_URL}/projects?${filterType}=${encodeURIComponent(filterValues)}&match_all=${matchAll}`;
+        
+        console.log(`Loading filtered projects with URL: ${url}`);
+        
+        const response = await fetch(url);
         
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
@@ -386,15 +583,16 @@ function showError(message) {
     `;
 }
 
-// Chat functionality
+// Send a message to the chat
 async function sendChatMessage(message) {
-    // Add user message to chat
-    addMessageToChat('user', message);
-    
-    // Show typing indicator
-    showTypingIndicator();
-    
     try {
+        // Add user message to chat
+        addMessageToChat('user', message);
+        
+        // Show typing indicator
+        showTypingIndicator();
+        
+        // Send message to API
         const response = await fetch(`${API_BASE_URL}/chat`, {
             method: 'POST',
             headers: {
@@ -408,38 +606,76 @@ async function sendChatMessage(message) {
         }
         
         const data = await response.json();
-        console.log("Chat response data:", data);
         
-        // Remove typing indicator
+        // Remove typing indicator before adding response
         removeTypingIndicator();
         
-        // Process the response
-        if (data.projects) {
-            // If projects were returned, add a message and display them
-            addMessageToChat('bot', data.response);
+        // Add response to chat
+        addMessageToChat('bot', data.response);
+        
+        // If the response includes projects, display them
+        if (data.projects && data.projects.length > 0) {
+            // Display projects in the main list
+            displayProjects(data.projects);
             
-            // Use formatted_projects if available, otherwise use projects
-            const projectsToDisplay = data.formatted_projects || data.projects;
-            addProjectDataToChat(projectsToDisplay);
+            // Add project data as a structured message in chat
+            addProjectDataToChat(data.formatted_projects);
             
-            // Also update the projects container with these results
-            if (Array.isArray(data.projects)) {
-                displayProjects(data.projects);
+            // If filters were applied, update the UI to show active filters
+            if (data.filters_applied) {
+                // Update current filters
+                currentFilters = {
+                    type: Object.keys(data.filters_applied)[0], // Get the first filter type
+                    values: data.filters_applied[Object.keys(data.filters_applied)[0]], // Get values for that type
+                    matchAll: data.match_all !== undefined ? data.match_all : true // Get match_all value or default to true
+                };
+                
+                // Clear any existing active filters
+                activeFilters.innerHTML = '';
+                
+                // Create an active filter display element
+                const activeFilter = document.createElement('div');
+                activeFilter.className = 'active-filter';
+                
+                // Format filter label
+                let filterLabel = '';
+                switch(currentFilters.type) {
+                    case 'tags': filterLabel = 'Tags'; break;
+                    case 'category': filterLabel = 'Category'; break;
+                    case 'owner': filterLabel = 'Owner'; break;
+                    default: filterLabel = currentFilters.type;
+                }
+                
+                // Match type text
+                const matchType = currentFilters.matchAll ? 'All of' : 'Any of';
+                
+                // Create UI element
+                activeFilter.innerHTML = `
+                    <span class="filter-label">${filterLabel}:</span>
+                    <span class="match-type">${matchType}</span>
+                    <span class="filter-values">${currentFilters.values.join(', ')}</span>
+                    <span class="remove-filter" title="Remove filter">&times;</span>
+                `;
+                
+                // Add click handler
+                const removeFilterBtn = activeFilter.querySelector('.remove-filter');
+                removeFilterBtn.addEventListener('click', () => {
+                    clearFilters();
+                });
+                
+                // Show active filters
+                activeFilters.appendChild(activeFilter);
+                activeFilters.style.display = 'flex';
             }
-        } else if (data.response) {
-            // Otherwise just show the chatbot's response
-            addMessageToChat('bot', data.response);
-        } else if (data.error) {
-            // Show error message
-            addMessageToChat('bot', `Sorry, I encountered an error: ${data.error}`);
         }
         
     } catch (error) {
-        // Remove typing indicator
+        // Remove typing indicator in case of error
         removeTypingIndicator();
         
-        console.error('Error sending message:', error);
-        addMessageToChat('bot', 'Sorry, I encountered an error while processing your request. Please try again.');
+        // Add error message to chat
+        addMessageToChat('bot', 'Sorry, I encountered an error while processing your request.');
+        console.error('Error sending chat message:', error);
     }
 }
 
