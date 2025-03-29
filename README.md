@@ -1,6 +1,6 @@
 # ExecutiveAgent
 
-ExecutiveAgent is a personal executive assistant application that helps users manage their projects through a web interface. It provides features for creating, viewing, updating, and deleting projects, as well as filtering and searching capabilities.
+ExecutiveAgent is a personal executive assistant application that helps users manage their projects through a web interface. It provides features for creating, viewing, updating, and deleting projects, as well as filtering and searching capabilities, and now includes a natural language chatbot interface.
 
 ## Project Structure
 
@@ -9,15 +9,18 @@ ExecutiveAgent/
 ├── src/                    # Main Python code
 │   ├── ExecAgent_MAIN.py   # Main Flask application
 │   ├── database.py         # Database connection and operations
-│   └── project.py          # Project-related functions
+│   ├── project.py          # Project-related functions
+│   └── chatbot.py          # AI chatbot integration
 ├── tests/                  # Test scripts
-│   └── test_project.py     # Tests for project functionality
+│   ├── test_project.py     # Tests for project functionality
+│   └── test_chatbot.py     # Tests for chatbot functionality
 ├── supabase/               # Supabase configuration
 │   └── supabase_client.py  # Supabase client configuration
 ├── webapp/                 # Web interface files
 │   ├── index.html          # Main HTML file
 │   ├── styles.css          # CSS styles
 │   └── app.js              # JavaScript for UI interactions
+├── .env.example            # Template for environment variables
 └── requirements.txt        # Python dependencies
 ```
 
@@ -28,6 +31,7 @@ ExecutiveAgent/
 - Python 3.8 or higher
 - Node.js and npm (for web development)
 - Supabase account with a configured project
+- OpenAI API key for chatbot functionality
 
 ### Installation
 
@@ -42,7 +46,15 @@ ExecutiveAgent/
    pip install -r requirements.txt
    ```
 
-3. Configure Supabase:
+3. Configure environment variables:
+   - Copy `.env.example` to `.env`
+   - Add your OpenAI API key to the `.env` file
+   ```
+   cp .env.example .env
+   # Edit .env with your API keys
+   ```
+
+4. Configure Supabase:
    - Ensure your Supabase project is set up with a 'projects' table
    - Verify that the credentials in `supabase/supabase_client.py` are correct
 
@@ -78,6 +90,24 @@ pytest tests/
 - Add new projects
 - View detailed information about a project
 - Delete projects
+- Chat with an AI assistant to help manage projects
+- Use natural language to search and filter projects
+- Get project data formatted in a readable format
+
+## Using the Chatbot
+
+The chatbot interface allows you to interact with your projects using natural language. You can:
+
+- Ask to see all projects
+- Filter projects using natural language (e.g., "Show me AI projects owned by Abhishek")
+- Get project information in a clean format
+- Ask general questions about project management
+
+Example queries:
+- "Show all projects"
+- "Find projects with tag #AI"
+- "What projects are owned by Abhishek?"
+- "Show me projects in the Labs category"
 
 ## Future Enhancements
 
@@ -86,3 +116,5 @@ pytest tests/
 - Calendar integration
 - AI-powered project recommendations
 - Email notifications
+- Enhanced chatbot capabilities with task automation
+- Voice interface for the chatbot

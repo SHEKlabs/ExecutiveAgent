@@ -10,6 +10,13 @@ const projectSearch = document.getElementById('projectSearch');
 const searchBtn = document.getElementById('searchBtn');
 const filterOptions = document.querySelectorAll('.filter-option');
 
+// Chat elements
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const sendMessageBtn = document.getElementById('sendMessageBtn');
+const clearChatBtn = document.getElementById('clearChatBtn');
+const chatExampleLinks = document.querySelectorAll('.chat-example-link');
+
 // Bootstrap modal instance
 let addProjectModal;
 
@@ -74,6 +81,40 @@ function setupEventListeners() {
                 };
                 loadFilteredProjects(filterType, filterValue.trim());
             }
+        });
+    });
+    
+    // Chat input - send on Enter key
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            sendMessageBtn.click();
+        }
+    });
+    
+    // Send message button
+    sendMessageBtn.addEventListener('click', () => {
+        const message = chatInput.value.trim();
+        if (message) {
+            sendChatMessage(message);
+            chatInput.value = '';
+        }
+    });
+    
+    // Clear chat button
+    clearChatBtn.addEventListener('click', () => {
+        // Clear all messages except the welcome message
+        const welcomeMessage = chatMessages.querySelector('.bot-message');
+        chatMessages.innerHTML = '';
+        chatMessages.appendChild(welcomeMessage);
+    });
+    
+    // Chat example links
+    chatExampleLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const exampleText = link.textContent;
+            chatInput.value = exampleText;
+            sendMessageBtn.click();
         });
     });
 }
@@ -157,11 +198,26 @@ function displayProjects(projects) {
             tagsHtml = project.tags.map(tag => `<span class="tag">${tag}</span>`).join('');
         }
         
+        // Get project name and description, with fallbacks
+        const projectName = project.name || 'Untitled Project';
+        const projectDescription = project.description || 'No description';
+        
+        // Get project category (could be string or array)
+        let categoryDisplay = '';
+        if (project.category) {
+            if (Array.isArray(project.category)) {
+                categoryDisplay = project.category.map(cat => 
+                    `<span class="project-category">${cat}</span>`).join(' ');
+            } else {
+                categoryDisplay = `<span class="project-category">${project.category}</span>`;
+            }
+        }
+        
         projectItem.innerHTML = `
-            <div class="project-title">${project.name || 'Untitled Project'}</div>
-            <div class="project-description text-truncate">${project.description || 'No description'}</div>
+            <div class="project-title">${projectName}</div>
+            <div class="project-description text-truncate">${projectDescription}</div>
             <div class="mt-2">
-                ${project.category ? `<span class="project-category">${project.category}</span>` : ''}
+                ${categoryDisplay}
                 <div class="mt-1">${tagsHtml}</div>
             </div>
             <div class="project-owner">Owner: ${project.owner || 'Unknown'}</div>
@@ -187,9 +243,21 @@ function displayProjects(projects) {
 
 // Show project details in the sidebar
 function showProjectDetails(project) {
+    // Create tags HTML
     const tagsHtml = project.tags && project.tags.length > 0 
         ? project.tags.map(tag => `<span class="tag">${tag}</span>`).join('') 
         : 'No tags';
+    
+    // Create category HTML - handle both string and array
+    let categoryHtml = 'Uncategorized';
+    if (project.category) {
+        if (Array.isArray(project.category)) {
+            categoryHtml = project.category.map(cat => 
+                `<span class="project-category">${cat}</span>`).join(' ');
+        } else {
+            categoryHtml = `<span class="project-category">${project.category}</span>`;
+        }
+    }
     
     projectDetails.innerHTML = `
         <h3>${project.name || 'Untitled Project'}</h3>
@@ -201,7 +269,7 @@ function showProjectDetails(project) {
         
         <div class="detail-section">
             <div class="detail-label">Category:</div>
-            <div class="detail-value">${project.category || 'Uncategorized'}</div>
+            <div class="detail-value">${categoryHtml}</div>
         </div>
         
         <div class="detail-section">
@@ -316,4 +384,171 @@ function showError(message) {
             <p>${message}</p>
         </div>
     `;
+}
+
+// Chat functionality
+async function sendChatMessage(message) {
+    // Add user message to chat
+    addMessageToChat('user', message);
+    
+    // Show typing indicator
+    showTypingIndicator();
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/chat`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log("Chat response data:", data);
+        
+        // Remove typing indicator
+        removeTypingIndicator();
+        
+        // Process the response
+        if (data.projects) {
+            // If projects were returned, add a message and display them
+            addMessageToChat('bot', data.response);
+            
+            // Use formatted_projects if available, otherwise use projects
+            const projectsToDisplay = data.formatted_projects || data.projects;
+            addProjectDataToChat(projectsToDisplay);
+            
+            // Also update the projects container with these results
+            if (Array.isArray(data.projects)) {
+                displayProjects(data.projects);
+            }
+        } else if (data.response) {
+            // Otherwise just show the chatbot's response
+            addMessageToChat('bot', data.response);
+        } else if (data.error) {
+            // Show error message
+            addMessageToChat('bot', `Sorry, I encountered an error: ${data.error}`);
+        }
+        
+    } catch (error) {
+        // Remove typing indicator
+        removeTypingIndicator();
+        
+        console.error('Error sending message:', error);
+        addMessageToChat('bot', 'Sorry, I encountered an error while processing your request. Please try again.');
+    }
+}
+
+function addMessageToChat(role, content) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${role}-message`;
+    
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+    
+    // Replace newlines with <br> tags for proper formatting
+    const formattedContent = content.replace(/\n/g, '<br>');
+    messageContent.innerHTML = `<p>${formattedContent}</p>`;
+    
+    // Add timestamp
+    const timestamp = document.createElement('div');
+    timestamp.className = 'message-timestamp';
+    timestamp.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    messageContent.appendChild(timestamp);
+    messageDiv.appendChild(messageContent);
+    chatMessages.appendChild(messageDiv);
+    
+    // Scroll to the bottom
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function addProjectDataToChat(projectData) {
+    if (typeof projectData === 'string') {
+        // If projectData is already a formatted string
+        const dataDiv = document.createElement('div');
+        dataDiv.className = 'message bot-message';
+        
+        const dataContent = document.createElement('div');
+        dataContent.className = 'message-content';
+        
+        const preElement = document.createElement('pre');
+        preElement.className = 'project-data-message';
+        preElement.textContent = projectData;
+        
+        dataContent.appendChild(preElement);
+        dataDiv.appendChild(dataContent);
+        chatMessages.appendChild(dataDiv);
+    } else if (Array.isArray(projectData)) {
+        // If projectData is an array of projects, format it nicely
+        const formattedData = projectData.map((project, index) => {
+            let projectStr = `Project ${index + 1}:\n`;
+            
+            // Define display order for fields
+            const fieldOrder = [
+                'name', 'description', 'category', 'owner', 'tags', 
+                'contributors', 'connected_project'
+            ];
+            
+            // First add fields in the preferred order
+            for (const field of fieldOrder) {
+                const value = project[field];
+                if (value) {
+                    const displayName = field.charAt(0).toUpperCase() + field.slice(1).replace('_', ' ');
+                    
+                    if (Array.isArray(value)) {
+                        projectStr += `  ${displayName}: ${value.join(', ')}\n`;
+                    } else {
+                        projectStr += `  ${displayName}: ${value}\n`;
+                    }
+                }
+            }
+            
+            // Then add any remaining fields
+            for (const [key, value] of Object.entries(project)) {
+                if (value && !fieldOrder.includes(key) && !['id', 'created_at', 'updated_at'].includes(key)) {
+                    const displayName = key.charAt(0).toUpperCase() + key.slice(1).replace('_', ' ');
+                    
+                    if (Array.isArray(value)) {
+                        projectStr += `  ${displayName}: ${value.join(', ')}\n`;
+                    } else {
+                        projectStr += `  ${displayName}: ${value}\n`;
+                    }
+                }
+            }
+            
+            return projectStr;
+        }).join('\n');
+        
+        addProjectDataToChat(formattedData);
+    }
+    
+    // Scroll to the bottom
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function showTypingIndicator() {
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'typing-indicator';
+    typingDiv.id = 'typingIndicator';
+    
+    typingDiv.innerHTML = `
+        <span></span>
+        <span></span>
+        <span></span>
+    `;
+    
+    chatMessages.appendChild(typingDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function removeTypingIndicator() {
+    const typingIndicator = document.getElementById('typingIndicator');
+    if (typingIndicator) {
+        typingIndicator.remove();
+    }
 } 

@@ -173,30 +173,323 @@ class ProjectManager:
             if not isinstance(value, list):
                 value = [value]
                 
+            # Debug
+            print(f"DEBUG: Filtering by {key} with values: {value}")
+                
             if key == 'category':
-                # For Category/Section (jsonb array), use containsAny to match any category
+                # Use the actual database column name
                 filter_conditions.append(('Category/Section', 'containsAny', value))
             
             elif key == 'owner':
-                # For Owner (text column), use 'in' operator
+                # Use the actual database column name
                 filter_conditions.append(('Owner', 'in', value))
             
             elif key == 'tags':
-                # For Tag (jsonb array), use containsAny to match any tag
-                filter_conditions.append(('Tag', 'containsAny', value))
+                # Use the actual database column name
+                # Special handling for tags - remove # prefix if needed for comparison
+                # and handle case sensitivity
+                normalized_tags = []
+                for tag in value:
+                    # Get the original tag (both with and without #)
+                    normalized_tags.append(tag)
+                    
+                    # Add lowercase version
+                    normalized_tags.append(tag.lower())
+                    
+                    # Add uppercase version
+                    normalized_tags.append(tag.upper())
+                    
+                    # Add capitalized version
+                    normalized_tags.append(tag.capitalize())
+                    
+                    # Handle # prefix/suffix variations
+                    if tag.startswith('#'):
+                        tag_without_hash = tag[1:]
+                        # Add without hash
+                        normalized_tags.append(tag_without_hash)
+                        # Add lowercase without hash
+                        normalized_tags.append(tag_without_hash.lower())
+                        # Add uppercase without hash
+                        normalized_tags.append(tag_without_hash.upper())
+                        # Add capitalized without hash
+                        normalized_tags.append(tag_without_hash.capitalize())
+                    else:
+                        tag_with_hash = f'#{tag}'
+                        # Add with hash
+                        normalized_tags.append(tag_with_hash)
+                        # Add lowercase with hash
+                        normalized_tags.append(tag_with_hash.lower())
+                        # Add uppercase with hash
+                        normalized_tags.append(tag_with_hash.upper())
+                        # Add capitalized with hash
+                        normalized_tags.append(tag_with_hash.capitalize())
+                
+                # Remove duplicates
+                normalized_tags = list(set(normalized_tags))
+                
+                print(f"DEBUG: Normalized tags for search: {normalized_tags}")
+                filter_conditions.append(('Tag', 'containsAny', normalized_tags))
             
             elif key == 'connected_project':
-                # For Connected Project (jsonb array), use containsAny
+                # Use the actual database column name
                 filter_conditions.append(('Connected Project', 'containsAny', value))
                 
             elif key == 'contributors':
-                # For Contributors (jsonb array), use containsAny
+                # Use the actual database column name
                 filter_conditions.append(('Contributors', 'containsAny', value))
         
         # Execute the query with all filter conditions
         if filter_conditions:
+            print(f"DEBUG: Final filter conditions: {filter_conditions}")
             result = self.db_client.get_data(self.table_name, filters=filter_conditions)
             return result.data
         else:
             # If no filters, return all projects
-            return self.get_all_projects() 
+            return self.get_all_projects()
+    
+    def process_nl_query(self, query_text):
+        """
+        Process a natural language query to extract filter criteria and return projects
+        
+        Args:
+            query_text (str): Natural language query from the user
+            
+        Returns:
+            List of project dictionaries matching the extracted criteria
+        """
+        # Extract filter criteria from the query text
+        filters = self.extract_filters_from_text(query_text)
+        
+        # If filters were extracted, use them to filter projects
+        if filters:
+            return self.filter_projects(filters)
+        else:
+            # If no filters were found, return all projects
+            return self.get_all_projects()
+    
+    def extract_filters_from_text(self, text):
+        """
+        Extract filter criteria from natural language text
+        
+        Args:
+            text (str): Natural language text to analyze
+            
+        Returns:
+            Dict of filter criteria extracted from the text
+        """
+        # Initialize filters dictionary
+        filters = {}
+        
+        # Convert text to lowercase for easier pattern matching
+        text_lower = text.lower()
+        
+        # Direct detection of hashtags in the original text (preserve case)
+        hashtags = []
+        for word in text.split():
+            word_lower = word.lower()
+            
+            # Special handling for common terms
+            if word_lower in ['#ai', 'ai', '#artificial', 'artificial intelligence']:
+                hashtags.append('#AI')
+                continue
+                
+            if word_lower in ['#ml', 'ml', '#machine', 'machine learning']:
+                hashtags.append('#ML')
+                continue
+            
+            # Handle normal hashtags
+            if '#' in word:
+                # If it's a pure hashtag, keep it as is
+                if word.startswith('#'):
+                    hashtags.append(word)
+                else:
+                    # Extract the part starting with #
+                    hashtag_part = word[word.find('#'):]
+                    hashtags.append(hashtag_part)
+        
+        # If we found hashtags, add them as tags
+        if hashtags:
+            filters['tags'] = hashtags
+            
+        # Check for category mentions
+        category_keywords = ['category', 'categories', 'section', 'type', 'group']
+        for keyword in category_keywords:
+            if keyword in text_lower:
+                # Simple extraction based on position
+                start = text_lower.find(keyword) + len(keyword)
+                # Extract the rest of the text after the keyword
+                rest = text_lower[start:].strip()
+                # Look for the first few words after the keyword
+                words = rest.split()[:3]  # Take up to 3 words
+                if words:
+                    potential_category = ' '.join(words).strip('.,;: ')
+                    if potential_category:
+                        # If category contains "and" or comma, split it
+                        if ' and ' in potential_category or ',' in potential_category:
+                            categories = [cat.strip() for cat in potential_category.replace(' and ', ',').split(',')]
+                            filters['category'] = categories
+                        else:
+                            filters['category'] = potential_category
+                break
+        
+        # Check for owner mentions
+        owner_keywords = ['owner', 'owned by', 'belongs to', 'created by']
+        for keyword in owner_keywords:
+            if keyword in text_lower:
+                start = text_lower.find(keyword) + len(keyword)
+                rest = text_lower[start:].strip()
+                words = rest.split()[:3]  # Take up to 3 words
+                if words:
+                    potential_owner = ' '.join(words).strip('.,;: ')
+                    if potential_owner:
+                        # If owner contains "and" or comma, split it
+                        if ' and ' in potential_owner or ',' in potential_owner:
+                            owners = [owner.strip() for owner in potential_owner.replace(' and ', ',').split(',')]
+                            filters['owner'] = owners
+                        else:
+                            filters['owner'] = potential_owner
+                break
+        
+        # Check for tag mentions if we didn't already find hashtags
+        if 'tags' not in filters:
+            tag_keywords = ['tag', 'tags', 'labeled', 'labelled', 'marked']
+            for keyword in tag_keywords:
+                if keyword in text_lower:
+                    start = text_lower.find(keyword) + len(keyword)
+                    # Extract the rest of the text after the keyword
+                    rest = text_lower[start:].strip()
+                    
+                    # Special handling for tags with # symbol
+                    # Look for hashtags directly in the text
+                    hashtags = []
+                    words = rest.split()
+                    for word in words:
+                        # Check if the word starts with # or contains a hashtag
+                        if word.startswith('#'):
+                            hashtags.append(word)
+                        elif '#' in word:
+                            # Extract the part starting with #
+                            hashtag_part = word[word.find('#'):]
+                            hashtags.append(hashtag_part)
+                    
+                    if hashtags:
+                        # If we found hashtags, use them
+                        filters['tags'] = hashtags
+                    else:
+                        # If no hashtags found, use the standard approach
+                        words = rest.split()[:5]  # Take up to 5 words for multiple tags
+                        if words:
+                            potential_tags = ' '.join(words).strip('.,;: ')
+                            if potential_tags:
+                                # Split tags by commas or "and"
+                                tags = [tag.strip() for tag in potential_tags.replace(' and ', ',').split(',')]
+                                if tags:
+                                    filters['tags'] = tags
+                    break
+        
+        # Special case handling for common tag terms without hashtags
+        if 'tags' not in filters:
+            common_tags = {
+                'ai': '#AI',
+                'artificial intelligence': '#AI',
+                'ml': '#ML',
+                'machine learning': '#ML',
+                'agent': '#Agent',
+                'code': '#code',
+                'finance': '#finance',
+                'labs': '#Labs'
+            }
+            
+            for term, tag in common_tags.items():
+                if term in text_lower:
+                    if 'tags' not in filters:
+                        filters['tags'] = []
+                    filters['tags'].append(tag)
+        
+        # Check for contributor mentions
+        contributor_keywords = ['contributor', 'contributors', 'team', 'member', 'members']
+        for keyword in contributor_keywords:
+            if keyword in text_lower:
+                start = text_lower.find(keyword) + len(keyword)
+                rest = text_lower[start:].strip()
+                words = rest.split()[:5]  # Take up to 5 words
+                if words:
+                    potential_contributors = ' '.join(words).strip('.,;: ')
+                    if potential_contributors:
+                        # Split contributors by commas or "and"
+                        contributors = [c.strip() for c in potential_contributors.replace(' and ', ',').split(',')]
+                        if contributors:
+                            filters['contributors'] = contributors
+                break
+        
+        print(f"DEBUG: Extracted filters from text: {filters}")
+        return filters
+    
+    def format_projects_for_chat(self, projects):
+        """
+        Format projects for display in chat interface using 'Column: Values' format
+        
+        Args:
+            projects (list): List of project dictionaries
+            
+        Returns:
+            str: Formatted string representation of projects
+        """
+        if not projects:
+            return "No projects found matching your criteria."
+        
+        formatted_output = []
+        
+        # Field display names (more user-friendly)
+        field_display_names = {
+            "name": "Name",
+            "description": "Description",
+            "category": "Category",
+            "owner": "Owner",
+            "tags": "Tags",
+            "contributors": "Contributors",
+            "connected_project": "Connected Project"
+        }
+        
+        # Field display order (for consistent output)
+        field_order = ["name", "description", "category", "owner", "tags", "contributors", "connected_project"]
+        
+        for i, project in enumerate(projects):
+            project_lines = []
+            
+            # Add project number
+            project_lines.append(f"Project {i+1}:")
+            
+            # First add fields in the preferred order
+            for field in field_order:
+                if field in project and project[field]:
+                    display_name = field_display_names.get(field, field.title())
+                    value = project[field]
+                    
+                    # Format list values
+                    if isinstance(value, list):
+                        value_str = ", ".join(str(item) for item in value)
+                    else:
+                        value_str = str(value)
+                    
+                    # Format the line as "Column: Values"
+                    project_lines.append(f"  {display_name}: {value_str}")
+            
+            # Then add any other fields not in the order list
+            for key, value in project.items():
+                if key not in field_order and key not in ['id', 'created_at', 'updated_at'] and value:
+                    display_name = field_display_names.get(key, key.title())
+                    
+                    # Format list values
+                    if isinstance(value, list):
+                        value_str = ", ".join(str(item) for item in value)
+                    else:
+                        value_str = str(value)
+                    
+                    # Format the line as "Column: Values"
+                    project_lines.append(f"  {display_name}: {value_str}")
+            
+            # Add a separator between projects
+            formatted_output.append("\n".join(project_lines))
+        
+        return "\n\n".join(formatted_output) 
