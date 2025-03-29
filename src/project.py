@@ -67,9 +67,28 @@ class ProjectManager:
         # Convert single owner to list if needed
         if not isinstance(owners, list):
             owners = [owners]
+        
+        # Expand the owner list with variations to improve matching
+        expanded_owners = set()
+        for owner in owners:
+            # Original name
+            expanded_owners.add(owner)
+            
+            # Handle specific common cases
+            if 'abhishek' in owner.lower():
+                expanded_owners.add('Abhishek')
+                expanded_owners.add('Abhishek Raol')
+            
+            if 'john' in owner.lower():
+                expanded_owners.add('John')
+                expanded_owners.add('John Doe')
+        
+        # Convert back to list
+        owners_list = list(expanded_owners)
+        print(f"DEBUG: Expanded owner names for search: {owners_list}")
             
         # For text columns like Owner, use 'in' operator with multiple values
-        filters = [('Owner', 'in', owners)]
+        filters = [('Owner', 'in', owners_list)]
         result = self.db_client.get_data(self.table_name, filters=filters)
         return result.data
     
@@ -181,8 +200,28 @@ class ProjectManager:
                 filter_conditions.append(('Category/Section', 'containsAny', value))
             
             elif key == 'owner':
-                # Use the actual database column name
-                filter_conditions.append(('Owner', 'in', value))
+                # Special handling for text fields like Owner
+                # Convert list of names to include variations
+                owner_variations = set()
+                for owner_name in value:
+                    # Original name
+                    owner_variations.add(owner_name)
+                    
+                    # Handle specific common cases
+                    if 'abhishek' in owner_name.lower():
+                        owner_variations.add('Abhishek')
+                        owner_variations.add('Abhishek Raol')
+                    
+                    if 'john' in owner_name.lower():
+                        owner_variations.add('John')
+                        owner_variations.add('John Doe')
+                
+                # Convert to list and use 'in' operator
+                owner_list = list(owner_variations)
+                print(f"DEBUG: Expanded owner names: {owner_list}")
+                
+                # Use the actual database column name with 'in' operator
+                filter_conditions.append(('Owner', 'in', owner_list))
             
             elif key == 'tags':
                 # Use the actual database column name
@@ -282,6 +321,7 @@ class ProjectManager:
         
         # Convert text to lowercase for easier pattern matching
         text_lower = text.lower()
+        original_text = text
         
         # Direct detection of hashtags in the original text (preserve case)
         hashtags = []
@@ -332,12 +372,29 @@ class ProjectManager:
                             filters['category'] = potential_category
                 break
         
-        # Check for owner mentions
-        owner_keywords = ['owner', 'owned by', 'belongs to', 'created by']
+        # Check for owner mentions - Enhanced with name detection
+        owner_keywords = ['owner', 'owned by', 'belongs to', 'created by', 'by']
         for keyword in owner_keywords:
             if keyword in text_lower:
                 start = text_lower.find(keyword) + len(keyword)
                 rest = text_lower[start:].strip()
+                
+                # Check for specific names we know exist in the database
+                common_owners = ['Abhishek', 'Abhishek Raol', 'John', 'John Doe']
+                
+                # Check if any of the common owners are in the original text (case sensitive)
+                found_owner = None
+                for owner in common_owners:
+                    if owner in original_text:
+                        found_owner = owner
+                        break
+                
+                if found_owner:
+                    filters['owner'] = found_owner
+                    print(f"DEBUG: Found specific owner: {found_owner}")
+                    break
+                
+                # If no exact match, fallback to extraction
                 words = rest.split()[:3]  # Take up to 3 words
                 if words:
                     potential_owner = ' '.join(words).strip('.,;: ')
@@ -492,4 +549,70 @@ class ProjectManager:
             # Add a separator between projects
             formatted_output.append("\n".join(project_lines))
         
-        return "\n\n".join(formatted_output) 
+        return "\n\n".join(formatted_output)
+    
+    def search_projects_by_text(self, search_term):
+        """
+        Search projects for text matching in name, description, or other fields
+        
+        Args:
+            search_term (str): The text to search for
+            
+        Returns:
+            List of project dictionaries containing the search term
+        """
+        # Get all projects first
+        all_projects = self.get_all_projects()
+        
+        # Convert search term to lowercase for case-insensitive matching
+        search_term_lower = search_term.lower()
+        
+        # Filter projects that contain the search term in any text field
+        matching_projects = []
+        
+        for project in all_projects:
+            # Check name field
+            if 'name' in project and project['name'] and search_term_lower in project['name'].lower():
+                matching_projects.append(project)
+                continue
+                
+            # Check description field
+            if 'description' in project and project['description'] and search_term_lower in project['description'].lower():
+                matching_projects.append(project)
+                continue
+                
+            # Check owner field
+            if 'owner' in project and project['owner'] and search_term_lower in project['owner'].lower():
+                matching_projects.append(project)
+                continue
+                
+            # Check tags (array field)
+            if 'tags' in project and project['tags']:
+                tags_str = ' '.join([str(tag).lower() for tag in project['tags']])
+                if search_term_lower in tags_str:
+                    matching_projects.append(project)
+                    continue
+                    
+            # Check category (array field)
+            if 'category' in project and project['category']:
+                if isinstance(project['category'], list):
+                    category_str = ' '.join([str(cat).lower() for cat in project['category']])
+                    if search_term_lower in category_str:
+                        matching_projects.append(project)
+                        continue
+                elif search_term_lower in str(project['category']).lower():
+                    matching_projects.append(project)
+                    continue
+                    
+            # Check contributors (array field)
+            if 'contributors' in project and project['contributors']:
+                if isinstance(project['contributors'], list):
+                    contributors_str = ' '.join([str(c).lower() for c in project['contributors']])
+                    if search_term_lower in contributors_str:
+                        matching_projects.append(project)
+                        continue
+                elif search_term_lower in str(project['contributors']).lower():
+                    matching_projects.append(project)
+                    continue
+        
+        return matching_projects 

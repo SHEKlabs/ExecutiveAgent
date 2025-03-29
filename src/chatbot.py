@@ -109,7 +109,7 @@ class Chatbot:
         # Define keywords for each filter type
         filter_keywords = {
             'category': ['category', 'section', 'type', 'kind', 'group'],
-            'owner': ['owner', 'owned by', 'belongs to', 'assigned to'],
+            'owner': ['owner', 'owned by', 'belongs to', 'assigned to', 'by'],
             'tags': ['tag', 'tags', 'labeled', 'labelled', 'marked as'],
             'contributors': ['contributor', 'contributors', 'worked on by', 'team']
         }
@@ -144,6 +144,14 @@ class Chatbot:
         if hashtags:
             filters['tags'] = hashtags
         
+        # Check for specific owners directly in the message
+        common_owners = ['Abhishek', 'Abhishek Raol', 'John', 'John Doe']
+        for owner in common_owners:
+            if owner in user_message:
+                filters['owner'] = owner
+                print(f"DEBUG: Found specific owner in message: {owner}")
+                break
+
         # Convert message to lowercase for easier matching of other filter types
         message_lower = user_message.lower()
         
@@ -151,6 +159,10 @@ class Chatbot:
         for filter_type, keywords in filter_keywords.items():
             if filter_type == 'tags' and 'tags' in filters:
                 # Skip tag extraction if we already found hashtags
+                continue
+                
+            if filter_type == 'owner' and 'owner' in filters:
+                # Skip owner extraction if we already found a specific owner
                 continue
                 
             for keyword in keywords:
@@ -195,6 +207,24 @@ class Chatbot:
                                 # For list types, split by commas or 'and'
                                 values = [v.strip() for v in value.replace(' and ', ',').split(',')]
                                 filters['tags'] = values
+                        elif filter_type == 'owner':
+                            # Special handling for owner
+                            # Check for known owners in the value
+                            owner_found = False
+                            for known_owner in common_owners:
+                                if known_owner.lower() in value.lower() or value.lower() in known_owner.lower():
+                                    filters['owner'] = known_owner
+                                    owner_found = True
+                                    break
+                            
+                            # If no known owner found, use the extracted value
+                            if not owner_found:
+                                if ',' in value or ' and ' in value:
+                                    # For multiple owners, split by commas or 'and'
+                                    values = [v.strip() for v in value.replace(' and ', ',').split(',')]
+                                    filters['owner'] = values
+                                else:
+                                    filters['owner'] = value
                         elif filter_type in ['contributors']:
                             # For list types, split by commas or 'and'
                             values = [v.strip() for v in value.replace(' and ', ',').split(',')]

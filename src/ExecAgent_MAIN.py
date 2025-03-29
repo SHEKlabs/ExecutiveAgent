@@ -119,6 +119,60 @@ def chat():
             "projects": projects,
             "formatted_projects": formatted_projects
         })
+
+    # Check for general search queries
+    search_keywords = ['search', 'find', 'look for', 'projects with', 'containing', 'related to']
+    is_search_query = any(keyword in lower_message for keyword in search_keywords)
+    
+    if is_search_query:
+        # Try to extract a search term
+        search_term = None
+        
+        # First check for quoted terms
+        import re
+        quoted_terms = re.findall(r'"([^"]*)"', user_message)
+        if quoted_terms:
+            search_term = quoted_terms[0]
+        else:
+            # Otherwise extract words after search keywords
+            for keyword in search_keywords:
+                if keyword in lower_message:
+                    # Find the position of the keyword
+                    start_pos = lower_message.find(keyword) + len(keyword)
+                    rest = lower_message[start_pos:].strip()
+                    
+                    # Take the first few words as the search term
+                    words = rest.split()[:3]
+                    if words:
+                        search_term = ' '.join(words)
+                    break
+        
+        if search_term:
+            print(f"DEBUG: Extracted search term: {search_term}")
+            # Use the text search method
+            projects = project_manager.search_projects_by_text(search_term)
+            formatted_projects = project_manager.format_projects_for_chat(projects)
+            
+            return jsonify({
+                "response": f"Here are projects matching '{search_term}':",
+                "projects": projects,
+                "formatted_projects": formatted_projects
+            })
+
+    # Check for owner-specific searches
+    known_owners = ['Abhishek', 'Abhishek Raol', 'John', 'John Doe']
+    for owner in known_owners:
+        if owner in user_message:
+            print(f"DEBUG: Detected owner name in message: {owner}")
+            # Special handling for owner queries
+            projects = project_manager.get_projects_by_owner([owner])
+            formatted_projects = project_manager.format_projects_for_chat(projects)
+            
+            return jsonify({
+                "response": f"Here are projects owned by {owner}:",
+                "projects": projects,
+                "formatted_projects": formatted_projects
+            })
     
     # Check for hashtags in the message (special handling for tag-based queries)
     if '#' in lower_message:
@@ -158,8 +212,41 @@ def chat():
         
         print(f"DEBUG: Found {len(projects)} projects matching filters")
         
+        # Prepare a response that mentions what filters were applied
+        filter_desc = []
+        if 'owner' in filters:
+            owner_val = filters['owner']
+            if isinstance(owner_val, list):
+                filter_desc.append(f"owner(s): {', '.join(owner_val)}")
+            else:
+                filter_desc.append(f"owner: {owner_val}")
+                
+        if 'tags' in filters:
+            tags_val = filters['tags']
+            if isinstance(tags_val, list):
+                filter_desc.append(f"tag(s): {', '.join(tags_val)}")
+            else:
+                filter_desc.append(f"tag: {tags_val}")
+                
+        if 'category' in filters:
+            cat_val = filters['category']
+            if isinstance(cat_val, list):
+                filter_desc.append(f"category/section: {', '.join(cat_val)}")
+            else:
+                filter_desc.append(f"category/section: {cat_val}")
+                
+        if 'contributors' in filters:
+            contrib_val = filters['contributors']
+            if isinstance(contrib_val, list):
+                filter_desc.append(f"contributor(s): {', '.join(contrib_val)}")
+            else:
+                filter_desc.append(f"contributor: {contrib_val}")
+        
+        filter_description = ", ".join(filter_desc)
+        response_msg = f"Here are the projects matching your criteria ({filter_description}):"
+        
         return jsonify({
-            "response": "Here are the projects matching your criteria:",
+            "response": response_msg,
             "projects": projects,
             "formatted_projects": formatted_projects,
             "filters_applied": filters
@@ -177,12 +264,72 @@ def chat():
         
         print(f"DEBUG: Found {len(projects)} projects matching chatbot filters")
         
+        # Prepare a response that mentions what filters were applied
+        filter_desc = []
+        if 'owner' in chatbot_filters:
+            owner_val = chatbot_filters['owner']
+            if isinstance(owner_val, list):
+                filter_desc.append(f"owner(s): {', '.join(owner_val)}")
+            else:
+                filter_desc.append(f"owner: {owner_val}")
+                
+        if 'tags' in chatbot_filters:
+            tags_val = chatbot_filters['tags']
+            if isinstance(tags_val, list):
+                filter_desc.append(f"tag(s): {', '.join(tags_val)}")
+            else:
+                filter_desc.append(f"tag: {tags_val}")
+                
+        if 'category' in chatbot_filters:
+            cat_val = chatbot_filters['category']
+            if isinstance(cat_val, list):
+                filter_desc.append(f"category/section: {', '.join(cat_val)}")
+            else:
+                filter_desc.append(f"category/section: {cat_val}")
+                
+        if 'contributors' in chatbot_filters:
+            contrib_val = chatbot_filters['contributors']
+            if isinstance(contrib_val, list):
+                filter_desc.append(f"contributor(s): {', '.join(contrib_val)}")
+            else:
+                filter_desc.append(f"contributor: {contrib_val}")
+        
+        filter_description = ", ".join(filter_desc)
+        response_msg = f"Here are the projects matching your criteria ({filter_description}):"
+        
         return jsonify({
-            "response": "Here are the projects matching your criteria:",
+            "response": response_msg,
             "projects": projects,
             "formatted_projects": formatted_projects,
             "filters_applied": chatbot_filters
         })
+    
+    # If this seems like a search query but we didn't find specific filters,
+    # try a general text search with the main words from the query
+    if is_search_query:
+        # Extract the most significant words from the query
+        import re
+        # Remove common words and punctuation
+        cleaned_text = re.sub(r'[^\w\s]', ' ', lower_message)
+        words = cleaned_text.split()
+        
+        # Remove common stop words
+        stop_words = ['search', 'find', 'for', 'the', 'and', 'with', 'projects', 'project', 'show', 'me', 'list', 'get', 'about']
+        search_words = [word for word in words if word not in stop_words and len(word) > 2]
+        
+        if search_words:
+            search_term = ' '.join(search_words[:3])  # Use up to 3 words
+            print(f"DEBUG: Using general text search with term: {search_term}")
+            
+            # Use the text search method
+            projects = project_manager.search_projects_by_text(search_term)
+            formatted_projects = project_manager.format_projects_for_chat(projects)
+            
+            return jsonify({
+                "response": f"Here are projects related to '{search_term}':",
+                "projects": projects,
+                "formatted_projects": formatted_projects
+            })
     
     # If no filters were found or it's a different type of query,
     # pass it to the chatbot for processing
