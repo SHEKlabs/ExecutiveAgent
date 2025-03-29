@@ -28,11 +28,14 @@ def get_projects():
     tags = request.args.get('tags')
     contributors = request.args.get('contributors')
     
+    # Get match mode (default: match all criteria)
+    match_all = request.args.get('match_all', 'true').lower() != 'false'
+    
     # Build filters dictionary
     if category:
-        filters['category'] = category
+        filters['category'] = [cat.strip() for cat in category.split(',')]
     if owner:
-        filters['owner'] = owner
+        filters['owner'] = [own.strip() for own in owner.split(',')]
     if tags:
         filters['tags'] = [tag.strip() for tag in tags.split(',')]
     if contributors:
@@ -40,7 +43,7 @@ def get_projects():
     
     # Use the filter_projects method if we have any filters
     if filters:
-        projects = project_manager.filter_projects(filters)
+        projects = project_manager.filter_projects(filters, match_all=match_all)
     else:
         projects = project_manager.get_all_projects()
     
@@ -201,11 +204,17 @@ def chat():
     # Extract filter criteria from the message using ProjectManager's method
     filters = project_manager.extract_filters_from_text(user_message)
     
+    # Check if the user wants to match any or all filters
+    match_all = True  # Default to matching all criteria
+    if any(phrase in lower_message for phrase in ['any of', 'either', 'or', 'match any']):
+        match_all = False
+        print("DEBUG: User requested to match ANY criteria")
+    
     # Check if the message is asking for projects with specific filters
     if filters:
         print(f"DEBUG: Handling message with filters: {filters}")
         # Get projects matching the filters
-        projects = project_manager.filter_projects(filters)
+        projects = project_manager.filter_projects(filters, match_all=match_all)
         
         # Format projects for chat display
         formatted_projects = project_manager.format_projects_for_chat(projects)
@@ -243,13 +252,15 @@ def chat():
                 filter_desc.append(f"contributor: {contrib_val}")
         
         filter_description = ", ".join(filter_desc)
-        response_msg = f"Here are the projects matching your criteria ({filter_description}):"
+        match_type = "any of" if not match_all else "all of"
+        response_msg = f"Here are the projects matching {match_type} your criteria ({filter_description}):"
         
         return jsonify({
             "response": response_msg,
             "projects": projects,
             "formatted_projects": formatted_projects,
-            "filters_applied": filters
+            "filters_applied": filters,
+            "match_all": match_all
         })
     
     # Extract filter criteria using Chatbot's method as a fallback
@@ -257,7 +268,7 @@ def chat():
     if chatbot_filters and chatbot_filters != filters:
         print(f"DEBUG: Using chatbot filters: {chatbot_filters}")
         # Get projects matching the filters
-        projects = project_manager.filter_projects(chatbot_filters)
+        projects = project_manager.filter_projects(chatbot_filters, match_all=match_all)
         
         # Format projects for chat display
         formatted_projects = project_manager.format_projects_for_chat(projects)
@@ -295,13 +306,15 @@ def chat():
                 filter_desc.append(f"contributor: {contrib_val}")
         
         filter_description = ", ".join(filter_desc)
-        response_msg = f"Here are the projects matching your criteria ({filter_description}):"
+        match_type = "any of" if not match_all else "all of"
+        response_msg = f"Here are the projects matching {match_type} your criteria ({filter_description}):"
         
         return jsonify({
             "response": response_msg,
             "projects": projects,
             "formatted_projects": formatted_projects,
-            "filters_applied": chatbot_filters
+            "filters_applied": chatbot_filters,
+            "match_all": match_all
         })
     
     # If this seems like a search query but we didn't find specific filters,

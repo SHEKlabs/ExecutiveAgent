@@ -110,7 +110,7 @@ class Chatbot:
         filter_keywords = {
             'category': ['category', 'section', 'type', 'kind', 'group'],
             'owner': ['owner', 'owned by', 'belongs to', 'assigned to', 'by'],
-            'tags': ['tag', 'tags', 'labeled', 'labelled', 'marked as'],
+            'tags': ['tag', 'tags', 'labeled', 'labelled', 'marked as', 'hashtag', 'hashtags'],
             'contributors': ['contributor', 'contributors', 'worked on by', 'team']
         }
         
@@ -146,112 +146,213 @@ class Chatbot:
         
         # Check for specific owners directly in the message
         common_owners = ['Abhishek', 'Abhishek Raol', 'John', 'John Doe']
+        found_owners = []
         for owner in common_owners:
             if owner in user_message:
-                filters['owner'] = owner
+                found_owners.append(owner)
                 print(f"DEBUG: Found specific owner in message: {owner}")
-                break
+        
+        if found_owners:
+            filters['owner'] = found_owners
 
         # Convert message to lowercase for easier matching of other filter types
         message_lower = user_message.lower()
         
-        # Check for each filter type (except tags, as we've handled hashtags already)
+        # Check for multiple filter mentions by finding all keyword occurrences
+        filter_matches = {}
         for filter_type, keywords in filter_keywords.items():
-            if filter_type == 'tags' and 'tags' in filters:
-                # Skip tag extraction if we already found hashtags
-                continue
-                
-            if filter_type == 'owner' and 'owner' in filters:
-                # Skip owner extraction if we already found a specific owner
-                continue
-                
+            filter_matches[filter_type] = []
             for keyword in keywords:
-                if keyword in message_lower:
-                    # Find the position of the keyword
-                    start_pos = message_lower.find(keyword)
-                    # Extract the text after the keyword
-                    after_keyword = message_lower[start_pos + len(keyword):].strip()
-                    # Find the next filter keyword or end of string
-                    next_keyword_pos = len(after_keyword)
-                    for next_keyword in [k for f in filter_keywords.values() for k in f]:
-                        pos = after_keyword.find(next_keyword)
-                        if pos > 0 and pos < next_keyword_pos:
-                            next_keyword_pos = pos
-                    
-                    # Extract the value for this filter
-                    value = after_keyword[:next_keyword_pos].strip()
-                    
-                    # Clean up the value (remove punctuation, etc.)
-                    value = value.strip(".,;: ")
-                    
-                    # Add to filters if value is not empty
-                    if value:
-                        if filter_type == 'tags':
-                            # Special handling for tags
-                            tag_words = value.split()
-                            tag_values = []
-                            
-                            for word in tag_words:
-                                if word.startswith('#'):
-                                    tag_values.append(word)
-                                elif '#' in word:
-                                    # Extract the part starting with #
-                                    hashtag_part = word[word.find('#'):]
-                                    tag_values.append(hashtag_part)
-                                else:
-                                    tag_values.append(word)
-                            
-                            if tag_values:
-                                filters['tags'] = tag_values
-                            elif ',' in value or ' and ' in value:
-                                # For list types, split by commas or 'and'
-                                values = [v.strip() for v in value.replace(' and ', ',').split(',')]
-                                filters['tags'] = values
-                        elif filter_type == 'owner':
-                            # Special handling for owner
-                            # Check for known owners in the value
-                            owner_found = False
-                            for known_owner in common_owners:
-                                if known_owner.lower() in value.lower() or value.lower() in known_owner.lower():
-                                    filters['owner'] = known_owner
-                                    owner_found = True
-                                    break
-                            
-                            # If no known owner found, use the extracted value
-                            if not owner_found:
-                                if ',' in value or ' and ' in value:
-                                    # For multiple owners, split by commas or 'and'
-                                    values = [v.strip() for v in value.replace(' and ', ',').split(',')]
-                                    filters['owner'] = values
-                                else:
-                                    filters['owner'] = value
-                        elif filter_type in ['contributors']:
-                            # For list types, split by commas or 'and'
-                            values = [v.strip() for v in value.replace(' and ', ',').split(',')]
-                            filters[filter_type] = values
-                        else:
-                            filters[filter_type] = value
-                    
-                    break
+                # Find all occurrences of this keyword
+                start_pos = 0
+                while True:
+                    pos = message_lower.find(keyword, start_pos)
+                    if pos == -1:
+                        break
+                    filter_matches[filter_type].append((pos, keyword))
+                    start_pos = pos + len(keyword)
         
-        # Special case handling for common tag terms without hashtags
-        if 'tags' not in filters:
-            common_tags = {
-                'ai': '#AI',
-                'artificial intelligence': '#AI',
-                'ml': '#ML',
-                'machine learning': '#ML',
-                'agent': '#Agent',
-                'code': '#code',
-                'finance': '#finance',
-                'labs': '#Labs'
-            }
+        # Sort all found positions across all filter types
+        all_positions = []
+        for filter_type, positions in filter_matches.items():
+            for pos, keyword in positions:
+                all_positions.append((pos, keyword, filter_type))
+        
+        # Sort by position in the message
+        all_positions.sort()
+        
+        # Process each filter mention in order
+        for i, (pos, keyword, filter_type) in enumerate(all_positions):
+            # Skip if we already have this filter type from hashtags or specific owners
+            if filter_type == 'tags' and 'tags' in filters:
+                continue
+            if filter_type == 'owner' and 'owner' in filters:
+                continue
             
-            for term, tag in common_tags.items():
-                if term in message_lower:
+            # Find the end of this filter's value (either next filter or end of message)
+            end_pos = len(message_lower)
+            if i < len(all_positions) - 1:
+                end_pos = all_positions[i+1][0]
+            
+            # Extract the text after the keyword up to the next filter or end
+            after_keyword = message_lower[pos + len(keyword):end_pos].strip()
+            
+            # Clean up the value
+            value = after_keyword.strip(".,;: ")
+            
+            if not value:
+                continue
+            
+            # Process based on filter type
+            if filter_type == 'tags':
+                # Extract individual tags
+                tag_values = []
+                
+                # Check for list indicators
+                if ',' in value or ' and ' in value:
+                    # Split by commas and 'and'
+                    parts = value.replace(' and ', ',').split(',')
+                    for part in parts:
+                        clean_part = part.strip()
+                        if clean_part:
+                            if clean_part.startswith('#'):
+                                tag_values.append(clean_part)
+                            else:
+                                # Add hashtag if missing
+                                tag_values.append(f"#{clean_part}")
+                else:
+                    # Process individual words for hashtags
+                    for word in value.split():
+                        if word.startswith('#'):
+                            tag_values.append(word)
+                        elif '#' in word:
+                            # Extract part starting with #
+                            hashtag = word[word.find('#'):]
+                            tag_values.append(hashtag)
+                        else:
+                            # Regular word, treat as tag
+                            tag_values.append(f"#{word}")
+                
+                if tag_values:
                     if 'tags' not in filters:
                         filters['tags'] = []
+                    filters['tags'].extend(tag_values)
+                    # Remove duplicates
+                    filters['tags'] = list(set(filters['tags']))
+                    
+            elif filter_type == 'owner':
+                # Extract owners
+                if ',' in value or ' and ' in value:
+                    # Split by commas and 'and'
+                    owners = [owner.strip() for owner in value.replace(' and ', ',').split(',')]
+                    for owner in owners:
+                        if owner:
+                            # Check against known owners
+                            for known_owner in common_owners:
+                                if owner.lower() in known_owner.lower() or known_owner.lower() in owner.lower():
+                                    if 'owner' not in filters:
+                                        filters['owner'] = []
+                                    if isinstance(filters['owner'], list):
+                                        filters['owner'].append(known_owner)
+                                    else:
+                                        filters['owner'] = [filters['owner'], known_owner]
+                                    break
+                            else:
+                                # No match with known owners
+                                if 'owner' not in filters:
+                                    filters['owner'] = []
+                                if isinstance(filters['owner'], list):
+                                    filters['owner'].append(owner)
+                                else:
+                                    filters['owner'] = [filters['owner'], owner]
+                else:
+                    # Single owner
+                    # Check against known owners
+                    for known_owner in common_owners:
+                        if value.lower() in known_owner.lower() or known_owner.lower() in value.lower():
+                            if 'owner' not in filters:
+                                filters['owner'] = known_owner
+                            elif isinstance(filters['owner'], list):
+                                filters['owner'].append(known_owner)
+                            else:
+                                filters['owner'] = [filters['owner'], known_owner]
+                            break
+                    else:
+                        # No match with known owners
+                        if 'owner' not in filters:
+                            filters['owner'] = value
+                        elif isinstance(filters['owner'], list):
+                            filters['owner'].append(value)
+                        else:
+                            filters['owner'] = [filters['owner'], value]
+                            
+            elif filter_type == 'category':
+                # Extract categories
+                if ',' in value or ' and ' in value:
+                    # Split by commas and 'and'
+                    categories = [cat.strip() for cat in value.replace(' and ', ',').split(',')]
+                    if 'category' not in filters:
+                        filters['category'] = categories
+                    elif isinstance(filters['category'], list):
+                        filters['category'].extend(categories)
+                    else:
+                        filters['category'] = [filters['category']] + categories
+                else:
+                    # Single category
+                    if 'category' not in filters:
+                        filters['category'] = value
+                    elif isinstance(filters['category'], list):
+                        filters['category'].append(value)
+                    else:
+                        filters['category'] = [filters['category'], value]
+                    
+            elif filter_type == 'contributors':
+                # Extract contributors
+                if ',' in value or ' and ' in value:
+                    # Split by commas and 'and'
+                    contributors = [c.strip() for c in value.replace(' and ', ',').split(',')]
+                    if 'contributors' not in filters:
+                        filters['contributors'] = contributors
+                    elif isinstance(filters['contributors'], list):
+                        filters['contributors'].extend(contributors)
+                    else:
+                        filters['contributors'] = [filters['contributors']] + contributors
+                else:
+                    # Single contributor
+                    if 'contributors' not in filters:
+                        filters['contributors'] = value
+                    elif isinstance(filters['contributors'], list):
+                        filters['contributors'].append(value)
+                    else:
+                        filters['contributors'] = [filters['contributors'], value]
+        
+        # Special case handling for common tag terms without hashtags
+        common_tags = {
+            'ai': '#AI',
+            'artificial intelligence': '#AI',
+            'ml': '#ML',
+            'machine learning': '#ML',
+            'agent': '#Agent',
+            'code': '#code',
+            'finance': '#finance',
+            'labs': '#Labs',
+            'foundation': '#Foundation'
+        }
+        
+        for term, tag in common_tags.items():
+            if term in message_lower:
+                if 'tags' not in filters:
+                    filters['tags'] = []
+                elif not isinstance(filters['tags'], list):
+                    filters['tags'] = [filters['tags']]
+                # Add if not already present
+                if tag not in filters['tags']:
                     filters['tags'].append(tag)
+        
+        # Ensure all filter values are lists for consistency
+        for key in filters:
+            if not isinstance(filters[key], list):
+                filters[key] = [filters[key]]
         
         # Store the extracted filters for future reference
         self.last_filter = filters if filters else self.last_filter
