@@ -28,52 +28,57 @@ ExecutiveAgent/
 
 ### Prerequisites
 
-- Python 3.8 or higher
-- Node.js and npm (for web development)
-- Supabase account with a configured project
-- OpenAI API key for chatbot functionality
+* Python 3.8 or higher
+* Node.js and npm (for web development)
+* Supabase account with a configured project
+* OpenAI API key for chatbot functionality
 
 ### Installation
 
 1. Clone the repository:
-   ```
+   ```bash
    git clone <repository-url>
    cd ExecutiveAgent
    ```
 
 2. Install Python dependencies:
-   ```
+   ```bash
    pip install -r requirements.txt
    ```
 
 3. Configure environment variables:
-   - Copy `.env.example` to `.env`
-   - Add your OpenAI API key to the `.env` file
-   ```
+   * Copy `.env.example` to `.env`
+   * Add your OpenAI API key to the `.env` file
+   ```bash
    cp .env.example .env
    # Edit .env with your API keys
    ```
 
 4. Configure Supabase:
-   - Ensure your Supabase project is set up with a 'projects' table
-   - Verify that the credentials in `supabase/supabase_client.py` are correct
+   * Ensure your Supabase project is set up with a 'projects' table
+   * Verify that the credentials in `supabase/supabase_client.py` are correct
+   * **Important Database Configuration:**
+     * The `id` column in your projects table must be:
+       * Set as the **Primary Key**
+       * Configured to **auto-generate** values (use "Is Identity" for integer types or `gen_random_uuid()` for UUID types)
+     * Do not set any other columns as part of the primary key
 
 ## Running the Application
 
 1. Start the Python backend:
-   ```
-   python src/ExecAgent_MAIN.py
+   ```bash
+   # Run from the project root directory
+   python -m src.ExecAgent_MAIN
    ```
 
 2. Open the web interface:
-   - Navigate to the `webapp` directory
-   - Open `index.html` in a web browser
-   - Alternatively, use a simple HTTP server:
-     ```
+   * Navigate to the `webapp` directory
+   * Use a simple HTTP server:
+     ```bash
      cd webapp
      python -m http.server 8000
      ```
-   - Then open `http://localhost:8000` in your browser
+   * Then open `http://localhost:8000` in your browser
 
 ## Testing
 

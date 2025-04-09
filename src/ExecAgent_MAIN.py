@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
-from project import ProjectManager
+from .project import ProjectManager
 import json
-from chatbot import Chatbot
+from .chatbot import Chatbot
 import asyncio
 
 app = Flask(__name__)

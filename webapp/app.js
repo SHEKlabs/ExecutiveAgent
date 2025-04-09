@@ -514,7 +514,8 @@ async function saveProject() {
     const projectData = {
         name,
         description,
-        category,
+        // Ensure category is sent as an array
+        category: category ? [category] : [], 
         tags: tagsString ? tagsString.split(',').map(tag => tag.trim()) : [],
         owner
     };
@@ -612,7 +613,8 @@ async function updateProject(projectId) {
     const projectData = {
         name,
         description,
-        category,
+        // Ensure category is sent as an array
+        category: category ? [category] : [],
         tags: tagsString ? tagsString.split(',').map(tag => tag.trim()) : [],
         owner
     };

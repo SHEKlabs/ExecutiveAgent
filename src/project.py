@@ -1,4 +1,4 @@
-from database import SupabaseClient
+from .database import SupabaseClient
 
 class ProjectManager:
     def __init__(self):
