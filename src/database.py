@@ -20,7 +20,7 @@ class SupabaseClient:
             "Tag": "tags",
             "Connected Project": "connected_project",
             "Contributors": "contributors",
-            "Notes/Description": "description"
+            "Description": "description"
         }
         
         self.frontend_to_db = {
@@ -30,7 +30,7 @@ class SupabaseClient:
             "tags": "Tag",
             "connected_project": "Connected Project",
             "contributors": "Contributors",
-            "description": "Notes/Description"
+            "description": "Description"
         }
     
     def execute_query(self, table, query_type, data=None, filters=None):

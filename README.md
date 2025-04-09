@@ -118,3 +118,47 @@ Example queries:
 - Email notifications
 - Enhanced chatbot capabilities with task automation
 - Voice interface for the chatbot
+
+# Create a .env file with your Supabase credentials
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_key
+
+4. Run the application
+```bash
+cd src
+python -m flask run
+```
+
+## Usage
+
+### Project List
+
+- View all projects in the main interface
+- Use the search box to find projects by name or description
+- Click on the Filter dropdown to filter by category, tag, or owner
+- Add multiple filter values and choose between matching all or any criteria
+
+### Using the Chat Assistant
+
+The Project Assistant chatbot supports natural language queries like:
+- "Show all projects"
+- "Find projects with tag #AI"
+- "Show projects owned by Abhishek"
+- "Find projects with tags #Foundation or #code"
+- "Show me projects in the AI category with tags #Agent"
+
+## Architecture
+
+- **Backend**: Python Flask API
+- **Database**: Supabase
+- **Frontend**: HTML/CSS/JavaScript with Bootstrap
+
+## Development
+
+The codebase is organized into several key components:
+
+- `src/ExecAgent_MAIN.py`: Main Flask application with API endpoints
+- `src/project.py`: Project management and filter logic
+- `src/chatbot.py`: Natural language processing for the chat interface
+- `src/database.py`: Database connection and query operations
+- `webapp/`: Frontend code (HTML, CSS, JavaScript)

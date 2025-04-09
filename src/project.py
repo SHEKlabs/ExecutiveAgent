@@ -67,7 +67,7 @@ class ProjectManager:
         # Convert single owner to list if needed
         if not isinstance(owners, list):
             owners = [owners]
-        
+            
         # Expand the owner list with variations to improve matching
         expanded_owners = set()
         for owner in owners:
@@ -308,7 +308,7 @@ class ProjectManager:
             return result.data
         else:
             # If no filters, return all projects
-            return self.get_all_projects()
+            return self.get_all_projects() 
     
     def process_nl_query(self, query_text):
         """

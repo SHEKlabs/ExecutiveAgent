@@ -1,5 +1,5 @@
 // API Configuration
-const API_BASE_URL = 'http://localhost:5001';
+const API_BASE_URL = 'http://localhost:5002';
 
 // DOM Elements
 const projectsContainer = document.getElementById('projectsContainer');
@@ -456,12 +456,21 @@ function showProjectDetails(project) {
         }
     }
     
+    // Format description display
+    const descriptionText = project.description || 'No description';
+    const descriptionClass = project.description ? 'detail-value' : 'detail-value text-muted fst-italic';
+    
     projectDetails.innerHTML = `
         <h3>${project.name || 'Untitled Project'}</h3>
         
         <div class="detail-section">
-            <div class="detail-label">Description:</div>
-            <div class="detail-value">${project.description || 'No description'}</div>
+            <div class="detail-label d-flex justify-content-between align-items-center">
+                Description:
+                <button class="btn btn-sm btn-primary" onclick="editProjectDescription('${project.id}', '${(project.description || '').replace(/'/g, "\\'")}')" title="Add/Edit Description">
+                    <i class="fas fa-edit"></i> Edit Description
+                </button>
+            </div>
+            <div id="project-description-value" class="${descriptionClass}">${descriptionText}</div>
         </div>
         
         <div class="detail-section">
@@ -535,8 +544,209 @@ async function saveProject() {
 
 // Edit an existing project
 function editProject(projectId) {
-    // This would be implemented to open the modal with project data
-    alert('Edit functionality will be implemented in the next phase');
+    // Find the project data
+    const projectItem = document.querySelector(`.project-item[data-project-id="${projectId}"]`);
+    if (!projectItem) {
+        alert('Project not found!');
+        return;
+    }
+    
+    // Get current project data
+    const projectTitle = projectItem.querySelector('.project-title').textContent;
+    const projectDescription = projectItem.querySelector('.project-description').textContent;
+    const projectOwner = projectItem.querySelector('.project-owner').textContent.replace('Owner: ', '');
+    
+    // Get category and tags (this is simplified, you might need to adjust based on your data structure)
+    let projectCategory = '';
+    const categoryEl = projectItem.querySelector('.project-category');
+    if (categoryEl) {
+        projectCategory = categoryEl.textContent;
+    }
+    
+    let projectTags = '';
+    const tagEls = projectItem.querySelectorAll('.tag');
+    if (tagEls.length > 0) {
+        const tags = Array.from(tagEls).map(tag => tag.textContent);
+        projectTags = tags.join(',');
+    }
+    
+    // Fill the form with project data
+    document.getElementById('projectName').value = projectTitle;
+    document.getElementById('projectDescription').value = projectDescription !== 'No description' ? projectDescription : '';
+    document.getElementById('projectCategory').value = projectCategory;
+    document.getElementById('projectTags').value = projectTags;
+    document.getElementById('projectOwner').value = projectOwner !== 'Unknown' ? projectOwner : '';
+    
+    // Change the modal title
+    document.getElementById('addProjectModalLabel').textContent = 'Edit Project';
+    
+    // Change the save button handler to update instead of create
+    const saveBtn = document.getElementById('saveProjectBtn');
+    // Remove existing event listeners
+    const newSaveBtn = saveBtn.cloneNode(true);
+    saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+    
+    // Add new event listener for updating
+    newSaveBtn.addEventListener('click', () => updateProject(projectId));
+    
+    // Show the modal
+    addProjectModal.show();
+}
+
+// Update an existing project
+async function updateProject(projectId) {
+    // Get form values
+    const name = document.getElementById('projectName').value.trim();
+    const description = document.getElementById('projectDescription').value.trim();
+    const category = document.getElementById('projectCategory').value.trim();
+    const tagsString = document.getElementById('projectTags').value.trim();
+    const owner = document.getElementById('projectOwner').value.trim();
+    
+    // Validate required fields
+    if (!name) {
+        alert('Project name is required!');
+        return;
+    }
+    
+    // Prepare project data
+    const projectData = {
+        name,
+        description,
+        category,
+        tags: tagsString ? tagsString.split(',').map(tag => tag.trim()) : [],
+        owner
+    };
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(projectData)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        // Close modal and reload projects
+        addProjectModal.hide();
+        
+        // Reset the modal title and button handler
+        document.getElementById('addProjectModalLabel').textContent = 'Add New Project';
+        const saveBtn = document.getElementById('saveProjectBtn');
+        const newSaveBtn = saveBtn.cloneNode(true);
+        saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+        newSaveBtn.addEventListener('click', saveProject);
+        
+        // Reload projects to show the updated data
+        loadProjects();
+        
+    } catch (error) {
+        alert('Failed to update project. Please try again.');
+        console.error('Error updating project:', error);
+    }
+}
+
+// Edit project description
+function editProjectDescription(projectId, currentDescription) {
+    // Create a modal for editing the description
+    const descriptionModal = document.createElement('div');
+    descriptionModal.className = 'modal fade';
+    descriptionModal.id = 'descriptionEditModal';
+    descriptionModal.setAttribute('tabindex', '-1');
+    descriptionModal.setAttribute('aria-labelledby', 'descriptionEditModalLabel');
+    descriptionModal.setAttribute('aria-hidden', 'true');
+    
+    // Create the modal content
+    descriptionModal.innerHTML = `
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="descriptionEditModalLabel">Edit Description</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="projectDescriptionEdit" class="form-label">Description</label>
+                        <textarea class="form-control" id="projectDescriptionEdit" rows="4">${currentDescription || ''}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveDescriptionBtn">Save</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add the modal to the document
+    document.body.appendChild(descriptionModal);
+    
+    // Initialize the modal
+    const modal = new bootstrap.Modal(descriptionModal);
+    modal.show();
+    
+    // Add event listener for the save button
+    document.getElementById('saveDescriptionBtn').addEventListener('click', async () => {
+        const newDescription = document.getElementById('projectDescriptionEdit').value.trim();
+        
+        try {
+            // Update the project in the database
+            await updateProjectDescription(projectId, newDescription);
+            
+            // Update the UI
+            const descriptionElement = document.getElementById('project-description-value');
+            descriptionElement.textContent = newDescription || 'No description';
+            
+            // Update the class based on whether there's a description
+            if (newDescription) {
+                descriptionElement.classList.remove('text-muted', 'fst-italic');
+            } else {
+                descriptionElement.classList.add('text-muted', 'fst-italic');
+            }
+            
+            // Close the modal
+            modal.hide();
+            
+            // Remove the modal element after it's hidden
+            descriptionModal.addEventListener('hidden.bs.modal', () => {
+                document.body.removeChild(descriptionModal);
+            });
+            
+        } catch (error) {
+            alert('Failed to update description. Please try again.');
+            console.error('Error updating description:', error);
+        }
+    });
+    
+    // Remove the modal element when it's closed
+    descriptionModal.addEventListener('hidden.bs.modal', () => {
+        document.body.removeChild(descriptionModal);
+    });
+}
+
+// Update project description in database
+async function updateProjectDescription(projectId, description) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ description })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating project description:', error);
+        throw error;
+    }
 }
 
 // Delete a project
