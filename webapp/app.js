@@ -45,7 +45,36 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Set up event listeners
     setupEventListeners();
+    
+    // FORCE HEADER COLORS
+    forceHeaderColors();
 });
+
+// Force header colors with JavaScript
+function forceHeaderColors() {
+    // Get all header elements
+    const projectsHeader = document.querySelector('.header-projects');
+    const detailsHeader = document.querySelector('.header-details');
+    const assistantHeader = document.querySelector('.header-assistant');
+    
+    // Apply styles directly with JavaScript
+    if (projectsHeader) {
+        projectsHeader.style.backgroundColor = '#85A947';
+        projectsHeader.style.color = 'white';
+    }
+    
+    if (detailsHeader) {
+        detailsHeader.style.backgroundColor = '#85A947';
+        detailsHeader.style.color = 'white';
+    }
+    
+    if (assistantHeader) {
+        assistantHeader.style.backgroundColor = '#85A947';
+        assistantHeader.style.color = 'white';
+    }
+    
+    console.log('Header colors have been forcibly applied!');
+}
 
 // Set up all event listeners
 function setupEventListeners() {
@@ -389,35 +418,40 @@ function displayProjects(projects) {
         projectItem.className = 'list-group-item project-item';
         projectItem.dataset.projectId = project.id;
         
-        // Create tags HTML
-        let tagsHtml = '';
+        // Create tags HTML (Ensure the wrapper div has the correct class for the grid)
+        let tagsHtml = '<div class="project-tags">No tags</div>'; 
         if (project.tags && project.tags.length > 0) {
-            tagsHtml = project.tags.map(tag => `<span class="tag">${tag}</span>`).join('');
+            tagsHtml = `<div class="project-tags">${project.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}</div>`;
         }
         
         // Get project name and description, with fallbacks
         const projectName = project.name || 'Untitled Project';
         const projectDescription = project.description || 'No description';
-        
-        // Get project category (could be string or array)
-        let categoryDisplay = '';
+        const descriptionClass = project.description ? 'project-description' : 'project-description text-muted fst-italic';
+
+        // Get project category (just the span with the class for the grid)
+        let categoryDisplay = '<span class="project-category">Uncategorized</span>'; 
         if (project.category) {
             if (Array.isArray(project.category)) {
-                categoryDisplay = project.category.map(cat => 
-                    `<span class="project-category">${cat}</span>`).join(' ');
+                 if (project.category.length > 0) {
+                    categoryDisplay = `<span class="project-category">${project.category[0]}</span>`;
+                 }
             } else {
                 categoryDisplay = `<span class="project-category">${project.category}</span>`;
             }
         }
         
+        // Owner text (Wrap in div with class for the grid)
+        const ownerText = `Owner: ${project.owner || 'Unknown'}`;
+        const ownerHtml = `<div class="project-owner">${ownerText}</div>`;
+
+        // New flat layout structure for CSS Grid
         projectItem.innerHTML = `
             <div class="project-title">${projectName}</div>
-            <div class="project-description text-truncate">${projectDescription}</div>
-            <div class="mt-2">
-                ${categoryDisplay}
-                <div class="mt-1">${tagsHtml}</div>
-            </div>
-            <div class="project-owner">Owner: ${project.owner || 'Unknown'}</div>
+            ${categoryDisplay} 
+            ${tagsHtml}
+            ${ownerHtml}
+            <div class="${descriptionClass}">${projectDescription}</div>
         `;
         
         // Add click event to show project details
