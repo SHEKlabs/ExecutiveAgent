@@ -1,10 +1,11 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from .project import ProjectManager
 import json
 from .chatbot import Chatbot
 import asyncio
+import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='../webapp', static_url_path='')
 project_manager = ProjectManager()
 chatbot = Chatbot()
 
@@ -15,6 +16,10 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE')
     return response
+
+@app.route('/')
+def serve_index():
+    return send_from_directory(app.static_folder, 'index.html')
 
 # Routes for project operations
 @app.route('/projects', methods=['GET'])
