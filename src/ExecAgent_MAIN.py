@@ -2,15 +2,28 @@
 from dotenv import load_dotenv
 load_dotenv()  # Load env variables immediately
 
-from templates.execAgent_promptLibrary import get_prompt
 import os
+import sys
+
+# Add the parent directory to sys.path to allow imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from templates.execAgent_promptLibrary import get_prompt
 print("Loaded GOOGLE_SHEETS_CREDENTIALS:", os.environ.get("GOOGLE_SHEETS_CREDENTIALS"))
 
-import gsheets
-import chatbot
+# Use relative imports when running as a module
+try:
+    from . import gsheets
+    from . import chatbot
+except ImportError:
+    import gsheets
+    import chatbot
+
 from flask import Flask, render_template, request, jsonify
 
-app = Flask(__name__)
+# Set the template folder explicitly
+template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates'))
+app = Flask(__name__, template_folder=template_dir)
 
 def test_projects_data():
     # Retrieve projects data from Google Sheets and print it for testing purposes.

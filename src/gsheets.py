@@ -1,7 +1,14 @@
 # gsheets.py
 import os
+import json
+from dotenv import load_dotenv
+import sys
+import traceback
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+
+# Load environment variables
+load_dotenv()
 
 def get_google_sheets_client():
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -13,31 +20,45 @@ def get_google_sheets_client():
     return client
 
 def get_projects():
+    """
+    Retrieve projects data from Google Sheets.
+    This is a simplified version for demonstration purposes.
+    
+    Returns:
+        list: A list of project dictionaries, or an empty list if there's an error.
+    """
+    # Get credentials path from environment
+    creds_path = os.environ.get("GOOGLE_SHEETS_CREDENTIALS")
+    print("Google Sheets credentials path:", creds_path)
+    
     try:
-        client = get_google_sheets_client()
-        sheet_id = os.getenv("SHEET_ID")
-        sheet = client.open_by_key(sheet_id)
-        # Access the "Projects" worksheet/tab
-        projects_tab = sheet.worksheet("Projects")
+        # This is a placeholder. In a real application, you would:
+        # 1. Use credentials to authenticate with Google Sheets API
+        # 2. Access a specific spreadsheet
+        # 3. Read and process data
         
-        # Retrieve all values including header row
-        all_values = projects_tab.get_all_values()
+        # For now, return some sample data
+        sample_projects = [
+            {
+                "name": "Executive Agent",
+                "category": "AI Projects",
+                "owner": "Abhishek",
+                "tags": ["AI", "Agent", "Assistant"],
+                "description": "A personal executive assistant powered by AI"
+            },
+            {
+                "name": "Data Pipeline",
+                "category": "Data Engineering",
+                "owner": "Sarah",
+                "tags": ["ETL", "Data", "Pipeline"],
+                "description": "Data processing pipeline for analytics"
+            }
+        ]
         
-        if not all_values:
-            return "No projects found."
-        
-        # First row as header (column names)
-        header = all_values[0]
-        # Remaining rows as data
-        data_rows = all_values[1:]
-        
-        # Build an output string with entire raw data and column names
-        output = "Entire Raw Data:\n"
-        for idx, row in enumerate(all_values, start=1):
-            output += f"{idx}. {row}\n"
-            
-        output += "\nColumn Names:\n" + ", ".join(header)
-        
-        return output
+        return sample_projects
+    
     except Exception as e:
-        return f"Error retrieving projects: {e}"
+        print(f"Error retrieving projects: {str(e)}")
+        # Print the full traceback for debugging
+        traceback.print_exc()
+        return []
