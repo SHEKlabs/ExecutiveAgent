@@ -55,3 +55,6 @@ coverage.xml
 
 # Credentials folder (to protect sensitive JSON keys, etc.)
 credentials/
+
+# Node modules directory
+node_modules/
