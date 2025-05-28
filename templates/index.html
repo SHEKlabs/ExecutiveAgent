@@ -3,48 +3,352 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Executive Assistant Chatbot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExecutiveAgent - Your Personal Project Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            background-color: #4c5b3d;
+        }
+        header {
+            background-color: #222;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .container {
+            display: flex;
+            padding: 20px;
+            gap: 20px;
+        }
+        .section {
+            background-color: #556b45;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        .section-header {
+            background-color: #556b45;
+            color: white;
+            padding: 10px;
+            margin: -10px -10px 10px -10px;
+            border-radius: 5px 5px 0 0;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .column {
+            flex: 1;
+        }
+        .left-column {
+            max-width: 400px;
+        }
+        .right-column {
+            flex: 2;
+        }
+        .project-details {
+            background-color: white;
+            padding: 15px;
+            border-radius: 3px;
+            min-height: 150px;
+        }
+        .project-list {
+            background-color: white;
+            border-radius: 3px;
+            padding: 10px;
+        }
+        .search-container {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        .search-container input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        .search-container button {
+            padding: 8px 15px;
+            margin-left: 5px;
+            background-color: #556b45;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .project-item {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+        }
+        .project-name {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        .project-category {
+            color: #666;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        .project-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+        .tag {
+            background-color: #f0f0f0;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #555;
+        }
+        .project-owner {
+            font-size: 12px;
+            color: #666;
+        }
+        .no-description {
+            color: #999;
+            font-style: italic;
+            font-size: 12px;
+        }
+        .chat-container {
+            background-color: white;
+            border-radius: 3px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            height: 300px;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 3px;
+        }
+        .chat-input {
+            display: flex;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+        }
+        .chat-input button {
+            background-color: #556b45;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 0 20px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        .add-project-btn {
+            background-color: #556b45;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .filter-btn {
+            background-color: white;
+            border: 1px solid #ddd;
+            padding: 8px 15px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .assistant-message {
+            background-color: #e1f5fe;
+            padding: 8px 12px;
+            border-radius: 15px 15px 15px 0;
+            margin-bottom: 10px;
+            max-width: 80%;
+            align-self: flex-start;
+        }
+        .user-message {
+            background-color: #e8f5e9;
+            padding: 8px 12px;
+            border-radius: 15px 15px 0 15px;
+            margin-bottom: 10px;
+            max-width: 80%;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .clear-chat {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-    <h1>Executive Assistant Chatbot</h1>
-    <div id="chat-box" style="border: 1px solid #ccc; padding: 10px; width: 500px; height: 300px; overflow-y: scroll;">
-        <!-- Chat messages will appear here -->
+    <header>
+        <h1>ExecutiveAgent</h1>
+        <span>Your Personal Project Assistant</span>
+    </header>
+    <div class="container">
+        <div class="column left-column">
+            <div class="section">
+                <div class="section-header">Project Details</div>
+                <div class="project-details">
+                    <p>Select a project to view details</p>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section-header">
+                    Project Assistant
+                    <button class="clear-chat" onclick="clearChat()">🗑️</button>
+                </div>
+                <div class="chat-container">
+                    <div id="chat-messages" class="chat-messages">
+                        <div class="assistant-message">
+                            👋 Hello! I'm your project assistant. How can I help you today?
+                        </div>
+                        <div class="assistant-message">
+                            Try asking me:
+                            <ul>
+                                <li>Show all projects</li>
+                                <li>Find projects with tag #AI</li>
+                                <li>Show projects owned by Abhishek</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <form id="chat-form" class="chat-input">
+                        <input type="text" id="message" placeholder="Type your message...">
+                        <button type="submit">➤</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="column right-column">
+            <div class="section">
+                <div class="section-header">
+                    Projects
+                    <button class="add-project-btn">+ Add Project</button>
+                </div>
+                <div class="project-list">
+                    <div class="search-container">
+                        <input type="text" id="search-projects" placeholder="Search projects...">
+                        <button id="search-btn">Search</button>
+                        <button class="filter-btn">Filter ▼</button>
+                    </div>
+                    <h3>Project List</h3>
+                    <div id="projects-container">
+                        <!-- Projects will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <form id="chat-form">
-        <input type="text" id="message" placeholder="Type your message..." style="width: 400px;">
-        <button type="submit">Send</button>
-    </form>
-
     <script>
-        const form = document.getElementById('chat-form');
-        const chatBox = document.getElementById('chat-box');
-
-        form.addEventListener('submit', function(e) {
+        // Function to load projects
+        function loadProjects() {
+            fetch('/projects')
+                .then(response => response.json())
+                .then(data => {
+                    const projectsContainer = document.getElementById('projects-container');
+                    projectsContainer.innerHTML = '';
+                    data.projects.forEach(project => {
+                        const projectElement = document.createElement('div');
+                        projectElement.className = 'project-item';
+                        let tagsHtml = '';
+                        if (project.tags && project.tags.length > 0) {
+                            tagsHtml = project.tags.map(tag => `<span class="tag">#${tag}</span>`).join('');
+                        }
+                        projectElement.innerHTML = `
+                            <div class="project-name">${project.name || 'Unnamed Project'}</div>
+                            <div class="project-category">${project.category || 'Uncategorized'}</div>
+                            <div class="project-tags">${tagsHtml}</div>
+                            <div class="project-owner">Owner: ${project.owner || 'Unassigned'}</div>
+                            ${project.description ? `<div class="project-description">${project.description}</div>` : '<div class="no-description">No description</div>'}
+                        `;
+                        projectElement.addEventListener('click', () => {
+                            displayProjectDetails(project);
+                        });
+                        projectsContainer.appendChild(projectElement);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading projects:', error);
+                    document.getElementById('projects-container').innerHTML = '<p>Error loading projects. Please try again later.</p>';
+                });
+        }
+        // Function to display project details
+        function displayProjectDetails(project) {
+            const detailsContainer = document.querySelector('.project-details');
+            let tagsHtml = '';
+            if (project.tags && project.tags.length > 0) {
+                tagsHtml = project.tags.map(tag => `<span class="tag">#${tag}</span>`).join('');
+            }
+            detailsContainer.innerHTML = `
+                <h2>${project.name || 'Unnamed Project'}</h2>
+                <p><strong>Category:</strong> ${project.category || 'Uncategorized'}</p>
+                <p><strong>Owner:</strong> ${project.owner || 'Unassigned'}</p>
+                <div><strong>Tags:</strong> ${tagsHtml || 'No tags'}</div>
+                <p><strong>Description:</strong> ${project.description || 'No description available'}</p>
+            `;
+        }
+        // Handle chat functionality
+        const chatForm = document.getElementById('chat-form');
+        const chatMessages = document.getElementById('chat-messages');
+        chatForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            const message = document.getElementById('message').value;
+            const messageInput = document.getElementById('message');
+            const message = messageInput.value.trim();
             if (!message) return;
-
-            // Append user message
-            chatBox.innerHTML += `<p><strong>You:</strong> ${message}</p>`;
-            
-            // Send the message to the server
+            // Add user message to chat
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.className = 'user-message';
+            userMessageDiv.textContent = message;
+            chatMessages.appendChild(userMessageDiv);
+            // Clear input
+            messageInput.value = '';
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            // Send to backend
             fetch('/chat', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
+                    'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: new URLSearchParams({ message: message })
+                body: `message=${encodeURIComponent(message)}`
             })
             .then(response => response.json())
             .then(data => {
-                // Append chatbot response
-                chatBox.innerHTML += `<p><strong>Assistant:</strong> ${data.response}</p>`;
-                // Clear the input
-                document.getElementById('message').value = '';
-                // Scroll to the bottom
-                chatBox.scrollTop = chatBox.scrollHeight;
+                const assistantMessageDiv = document.createElement('div');
+                assistantMessageDiv.className = 'assistant-message';
+                assistantMessageDiv.textContent = data.response;
+                chatMessages.appendChild(assistantMessageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            })
+            .catch(error => {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'assistant-message';
+                errorDiv.textContent = 'Error: ' + error;
+                chatMessages.appendChild(errorDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
             });
         });
+        // Clear chat
+        function clearChat() {
+            chatMessages.innerHTML = '';
+        }
+        // Load projects on page load
+        window.onload = loadProjects;
     </script>
 </body>
 </html>

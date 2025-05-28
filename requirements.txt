@@ -3,3 +3,7 @@ python-dotenv
 gspread
 oauth2client
 openai
+<<<<<<< HEAD
+=======
+supabase
+>>>>>>> db0195b (Initial commit: working Supabase/Flask ExecutiveAgent with detailed setup instructions)
