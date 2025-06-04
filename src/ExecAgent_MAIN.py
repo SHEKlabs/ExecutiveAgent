@@ -62,13 +62,48 @@ def get_projects(filters=None):
 def index():
     # Get all projects
     projects = get_projects()
-    return render_template("index.html", projects=projects)
+    # Get Supabase information
+    supabase_url = os.environ.get("SUPABASE_URL", "")
+    projects_table = os.environ.get("PROJECTS_TABLE", "projects")
+    # Extract project name from URL (e.g., https://xyz.supabase.co -> xyz)
+    supabase_project = supabase_url.split("//")[1].split(".")[0] if supabase_url else ""
+    return render_template("index.html", 
+                         projects=projects,
+                         supabase_table=projects_table,
+                         supabase_project=supabase_project)
 
 @app.route("/projects")
 def get_projects_endpoint():
     """API endpoint to get projects"""
     projects = get_projects()
     return jsonify({"projects": projects})
+
+@app.route("/projects/<project_name>", methods=["PUT"])
+def update_project(project_name):
+    """API endpoint to update a project"""
+    try:
+        # Get the updates from the request JSON
+        updates = request.get_json()
+        
+        if not updates:
+            return jsonify({"success": False, "error": "No updates provided"}), 400
+        
+        # Remove any id field to prevent updates
+        if 'id' in updates:
+            del updates['id']
+        
+        if supabase_client:
+            result = supabase_client.update_project(project_name, updates)
+            if result["success"]:
+                return jsonify(result)
+            else:
+                return jsonify(result), 500
+        else:
+            return jsonify({"success": False, "error": "Database not available"}), 500
+            
+    except Exception as e:
+        print(f"Error in update_project route: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/chat", methods=["POST"])
 def chat():

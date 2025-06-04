@@ -130,4 +130,126 @@ class SupabaseClient:
             if key not in self.frontend_to_db:
                 result[key] = value
                 
+        return result
+
+    def update_project(self, project_name, updates):
+        """
+        Update a project in Supabase
+        project_name: The primary key value (Project field)
+        updates: Dictionary of fields to update (in frontend format)
+        """
+        try:
+            print(f"Updating project: {project_name}")
+            print(f"Updates (frontend format): {updates}")
+            
+            # Filter out None/null values completely
+            filtered_updates = {}
+            for key, value in updates.items():
+                if value is not None and value != "null" and value != "":
+                    filtered_updates[key] = value
+            
+            print(f"After filtering null values: {filtered_updates}")
+            
+            if not filtered_updates:
+                print("No valid updates after filtering")
+                return {"success": True, "message": "No changes to save"}
+            
+            # Map frontend field names to database field names
+            db_updates = self.map_frontend_to_db(filtered_updates)
+            print(f"After mapping to DB format: {db_updates}")
+            
+            # Handle JSONB fields properly
+            db_updates = self.format_jsonb_fields(db_updates)
+            print(f"After formatting JSONB fields: {db_updates}")
+            
+            # Final null check - remove any fields that ended up null
+            final_updates = {}
+            for key, value in db_updates.items():
+                if value is not None and value != "null":
+                    final_updates[key] = value
+            
+            print(f"Final updates to send to Supabase: {final_updates}")
+            
+            if not final_updates:
+                print("No valid updates after final filtering")
+                return {"success": True, "message": "No changes to save"}
+            
+            # Update the project using the Project field as the key
+            result = self.client.table(self.projects_table)\
+                .update(final_updates)\
+                .eq("Project", project_name)\
+                .execute()
+            
+            print(f"Update result: {result}")
+            return {"success": True, "data": result.data}
+            
+        except Exception as e:
+            print(f"Error updating project: {str(e)}")
+            traceback.print_exc()
+            return {"success": False, "error": str(e)}
+
+    def format_jsonb_fields(self, data):
+        """
+        Ensure JSONB fields are properly formatted as arrays
+        """
+        if not data:
+            return data
+            
+        # Define which fields are JSONB
+        jsonb_fields = ["Tags", "Category/Section"]
+        
+        result = {}
+        
+        # Copy non-JSONB fields as-is (but filter nulls)
+        for key, value in data.items():
+            if key not in jsonb_fields:
+                if value is not None and value != "null" and value != "":
+                    result[key] = value
+        
+        # Handle JSONB fields specially
+        for field in jsonb_fields:
+            if field in data:
+                value = data[field]
+                
+                # Skip if null/None
+                if value is None or value == "null" or value == "":
+                    continue
+                
+                # Ensure we have a proper array
+                processed_array = []
+                
+                # If it's already a list
+                if isinstance(value, list):
+                    processed_array = [str(item).strip() for item in value if item is not None and str(item).strip() != "null" and str(item).strip() != ""]
+                # If it's a string that looks like JSON
+                elif isinstance(value, str):
+                    if value.strip().startswith('[') and value.strip().endswith(']'):
+                        try:
+                            parsed = json.loads(value)
+                            if isinstance(parsed, list):
+                                processed_array = [str(item).strip() for item in parsed if item is not None and str(item).strip() != "null" and str(item).strip() != ""]
+                            else:
+                                str_val = str(parsed).strip()
+                                if str_val and str_val != "null":
+                                    processed_array = [str_val]
+                        except json.JSONDecodeError:
+                            # If parsing fails, treat as single string
+                            str_val = value.strip()
+                            if str_val and str_val != "null":
+                                processed_array = [str_val]
+                    else:
+                        # Regular string
+                        str_val = value.strip()
+                        if str_val and str_val != "null":
+                            processed_array = [str_val]
+                # For any other type
+                else:
+                    str_val = str(value).strip()
+                    if str_val and str_val != "null":
+                        processed_array = [str_val]
+                
+                # Only add to result if we have a non-empty array
+                if processed_array:
+                    result[field] = processed_array
+                    
         return result 

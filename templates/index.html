@@ -85,6 +85,7 @@
         .project-item {
             border-bottom: 1px solid #eee;
             padding: 10px 0;
+            position: relative;
         }
         .project-name {
             font-weight: bold;
@@ -94,13 +95,20 @@
         .project-category {
             color: #666;
             font-size: 12px;
-            margin-bottom: 5px;
+            position: absolute;
+            top: 10px;
+            right: 0;
         }
         .project-tags {
             display: flex;
             flex-wrap: wrap;
             gap: 5px;
             margin-bottom: 5px;
+        }
+        .project-description {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
         }
         .tag {
             background-color: #f0f0f0;
@@ -193,6 +201,75 @@
             color: #999;
             cursor: pointer;
         }
+        .detail-field {
+            margin-bottom: 12px;
+            padding: 8px;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .editable-field {
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+            display: inline-block;
+            min-width: 50px;
+            border: 1px solid transparent;
+        }
+        .editable-field:hover {
+            background-color: #e8f4f8;
+            border-color: #ddd;
+        }
+        .editable-field .tag {
+            margin-right: 5px;
+        }
+        .save-changes-btn {
+            background-color: #556b45;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+        .save-changes-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .save-changes-btn:not(:disabled):hover {
+            background-color: #4a5c3c;
+        }
+        .cancel-changes-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+        .cancel-changes-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .cancel-changes-btn:not(:disabled):hover {
+            background-color: #c82333;
+        }
+        .field-changed {
+            background-color: #fff3cd !important;
+            border-color: #ffc107 !important;
+        }
+        .jsonb-editor {
+            position: relative;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .jsonb-editor input {
+            font-size: 12px;
+        }
+        .jsonb-editor button {
+            font-size: 11px;
+        }
     </style>
 </head>
 <body>
@@ -238,6 +315,10 @@
             <div class="section">
                 <div class="section-header">
                     Projects
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; font-size: 14px;">
+                        <span>Table: {{ supabase_table }}</span>
+                        <span style="font-size: 12px; color: #ccc;">Supabase Project: {{ supabase_project }}</span>
+                    </div>
                     <button class="add-project-btn">+ Add Project</button>
                 </div>
                 <div class="project-list">
@@ -273,7 +354,6 @@
                             <div class="project-name">${project.name || 'Unnamed Project'}</div>
                             <div class="project-category">${project.category || 'Uncategorized'}</div>
                             <div class="project-tags">${tagsHtml}</div>
-                            <div class="project-owner">Owner: ${project.owner || 'Unassigned'}</div>
                             ${project.description ? `<div class="project-description">${project.description}</div>` : '<div class="no-description">No description</div>'}
                         `;
                         projectElement.addEventListener('click', () => {
@@ -290,17 +370,494 @@
         // Function to display project details
         function displayProjectDetails(project) {
             const detailsContainer = document.querySelector('.project-details');
-            let tagsHtml = '';
-            if (project.tags && project.tags.length > 0) {
-                tagsHtml = project.tags.map(tag => `<span class="tag">#${tag}</span>`).join('');
+            
+            console.log('📋 Displaying project details for:', project.name);
+            console.log('Raw project data:', project);
+            
+            // Ensure JSONB fields are arrays and clean them
+            let tags = [];
+            let category = [];
+            
+            // Process tags - clean # prefix and ensure array
+            if (project.tags) {
+                if (Array.isArray(project.tags)) {
+                    tags = project.tags.map(tag => {
+                        const cleanTag = String(tag || '').trim();
+                        return cleanTag.startsWith('#') ? cleanTag.substring(1) : cleanTag;
+                    }).filter(tag => tag);
+                } else {
+                    const tagStr = String(project.tags).trim();
+                    if (tagStr) {
+                        tags = [tagStr.startsWith('#') ? tagStr.substring(1) : tagStr];
+                    }
+                }
             }
+            
+            // Process category - ensure array
+            if (project.category) {
+                if (Array.isArray(project.category)) {
+                    category = project.category.map(cat => String(cat || '').trim()).filter(cat => cat);
+                } else {
+                    const catStr = String(project.category).trim();
+                    if (catStr) {
+                        category = [catStr];
+                    }
+                }
+            }
+            
+            console.log('Processed tags:', tags);
+            console.log('Processed category:', category);
+            
+            // Handle tags display (add # back for display only)
+            let tagsHtml = '';
+            if (tags && tags.length > 0) {
+                tagsHtml = tags.map(tag => `<span class="tag">#${tag}</span>`).join('');
+            }
+            
+            // Handle category display
+            let categoryDisplay = '';
+            if (category && category.length > 0) {
+                categoryDisplay = category.join(', ');
+            }
+            
             detailsContainer.innerHTML = `
-                <h2>${project.name || 'Unnamed Project'}</h2>
-                <p><strong>Category:</strong> ${project.category || 'Uncategorized'}</p>
-                <p><strong>Owner:</strong> ${project.owner || 'Unassigned'}</p>
-                <div><strong>Tags:</strong> ${tagsHtml || 'No tags'}</div>
-                <p><strong>Description:</strong> ${project.description || 'No description available'}</p>
+                <h2>Project Details</h2>
+                <div class="detail-field">
+                    <strong>Name:</strong> 
+                    <span class="editable-field" data-field="name" data-original="${escapeHtml(project.name || '')}">${project.name || 'Unnamed Project'}</span>
+                </div>
+                <div class="detail-field">
+                    <strong>Category:</strong> 
+                    <span class="editable-field jsonb-field" data-field="category" data-original="${escapeHtml(JSON.stringify(category))}">${categoryDisplay || 'Uncategorized'}</span>
+                </div>
+                <div class="detail-field">
+                    <strong>Owner:</strong> 
+                    <span class="editable-field" data-field="owner" data-original="${escapeHtml(project.owner || '')}">${project.owner || 'Unassigned'}</span>
+                </div>
+                <div class="detail-field">
+                    <strong>Connected Projects:</strong> 
+                    <span class="editable-field" data-field="connected_project" data-original="${escapeHtml(project.connected_project || '')}">${project.connected_project || 'None'}</span>
+                </div>
+                <div class="detail-field">
+                    <strong>Contributors:</strong> 
+                    <span class="editable-field" data-field="contributors" data-original="${escapeHtml(project.contributors || '')}">${project.contributors || 'None'}</span>
+                </div>
+                <div class="detail-field">
+                    <strong>Tags:</strong> 
+                    <span class="editable-field jsonb-field" data-field="tags" data-original="${escapeHtml(JSON.stringify(tags))}">${tagsHtml || 'No tags'}</span>
+                </div>
+                <div class="detail-field">
+                    <strong>Description:</strong> 
+                    <span class="editable-field" data-field="description" data-original="${escapeHtml(project.description || '')}">${project.description || 'No description available'}</span>
+                </div>
+                <div style="margin-top: 15px; font-size: 12px; color: #666;">
+                    Click on any field to edit it. For Tags and Category, use the simple text editor with comma-separated values.
+                </div>
+                <div style="margin-top: 15px; display: flex; gap: 10px; align-items: center;">
+                    <button id="save-changes-btn" class="save-changes-btn" onclick="saveAllChanges()" disabled>Save Changes</button>
+                    <button id="cancel-changes-btn" class="cancel-changes-btn" onclick="cancelAllChanges()" disabled>Cancel Changes</button>
+                    <span id="changes-indicator" style="font-size: 12px; color: #666; display: none;">You have unsaved changes</span>
+                </div>
             `;
+            
+            // Store the current project for updates and initialize pending changes
+            window.currentProject = project;
+            // Ensure JSONB fields are properly formatted in currentProject with clean data
+            window.currentProject.tags = tags;
+            window.currentProject.category = category;
+            window.pendingChanges = {};
+            
+            console.log('📋 Stored currentProject:', window.currentProject);
+            
+            // Add click handlers for editable fields
+            document.querySelectorAll('.editable-field').forEach(field => {
+                field.addEventListener('click', makeFieldEditable);
+            });
+        }
+        // Function to escape HTML for safe attribute values
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        // Function to make a field editable
+        function makeFieldEditable(event) {
+            const field = event.target;
+            const fieldName = field.getAttribute('data-field');
+            const originalValue = field.getAttribute('data-original');
+            const isJsonbField = field.classList.contains('jsonb-field');
+            
+            // Don't edit if already editing
+            if (field.querySelector('input') || field.querySelector('textarea') || field.querySelector('.jsonb-editor')) {
+                return;
+            }
+            
+            if (isJsonbField) {
+                createJsonbEditor(field, fieldName, originalValue);
+            } else {
+                createRegularEditor(field, fieldName, originalValue);
+            }
+        }
+        // Function to create JSONB array editor
+        function createJsonbEditor(field, fieldName, originalValue) {
+            // Parse current value
+            let currentArray;
+            try {
+                currentArray = JSON.parse(originalValue || '[]');
+                if (!Array.isArray(currentArray)) {
+                    currentArray = [];
+                }
+                // Clean existing data - remove # from tags if present
+                if (fieldName === 'tags') {
+                    currentArray = currentArray.map(tag => {
+                        const cleanTag = String(tag || '').trim();
+                        return cleanTag.startsWith('#') ? cleanTag.substring(1) : cleanTag;
+                    }).filter(tag => tag);
+                }
+            } catch (e) {
+                currentArray = [];
+            }
+            
+            // Check for pending changes
+            if (window.pendingChanges[fieldName] !== undefined) {
+                currentArray = [...window.pendingChanges[fieldName]];
+            }
+            
+            console.log(`Editing ${fieldName}, current array:`, currentArray);
+            
+            // Create container
+            const container = document.createElement('div');
+            container.style.cssText = 'border: 1px solid #ddd; padding: 10px; border-radius: 4px; background: white;';
+            
+            // Create current items display
+            const itemsDiv = document.createElement('div');
+            itemsDiv.style.cssText = 'margin-bottom: 10px; min-height: 30px;';
+            
+            // Create text input for editing (simple comma-separated approach)
+            const textarea = document.createElement('textarea');
+            textarea.style.cssText = 'width: 100%; height: 60px; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 12px;';
+            textarea.placeholder = `Enter ${fieldName === 'tags' ? 'tags' : 'categories'} separated by commas...`;
+            textarea.value = currentArray.join(', ');
+            
+            // Info text
+            const infoDiv = document.createElement('div');
+            infoDiv.style.cssText = 'font-size: 11px; color: #666; margin: 5px 0;';
+            infoDiv.textContent = `Separate multiple ${fieldName === 'tags' ? 'tags' : 'categories'} with commas. Example: ${fieldName === 'tags' ? 'AI, machine learning, python' : 'Category1, Category2'}`;
+            
+            // Buttons
+            const buttonDiv = document.createElement('div');
+            buttonDiv.style.cssText = 'display: flex; gap: 5px; justify-content: flex-end; margin-top: 10px;';
+            
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = 'Save';
+            saveBtn.style.cssText = 'padding: 6px 12px; background: #556b45; color: white; border: none; border-radius: 3px; cursor: pointer;';
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.style.cssText = 'padding: 6px 12px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;';
+            
+            // Save function
+            saveBtn.onclick = () => {
+                const inputValue = textarea.value.trim();
+                let newArray = [];
+                
+                if (inputValue) {
+                    newArray = inputValue.split(',').map(item => {
+                        let cleanItem = item.trim();
+                        // Remove # from tags if user added it
+                        if (fieldName === 'tags' && cleanItem.startsWith('#')) {
+                            cleanItem = cleanItem.substring(1);
+                        }
+                        return cleanItem;
+                    }).filter(item => item); // Remove empty items
+                }
+                
+                console.log(`Saving ${fieldName}:`, newArray);
+                saveFieldLocally(fieldName, newArray, field, originalValue, true);
+            };
+            
+            // Cancel function
+            cancelBtn.onclick = () => {
+                cancelFieldEdit(field, fieldName, true);
+            };
+            
+            // Assemble
+            buttonDiv.appendChild(saveBtn);
+            buttonDiv.appendChild(cancelBtn);
+            
+            container.appendChild(itemsDiv);
+            container.appendChild(infoDiv);
+            container.appendChild(textarea);
+            container.appendChild(buttonDiv);
+            
+            // Replace field content
+            field.innerHTML = '';
+            field.appendChild(container);
+            
+            // Focus and select text
+            textarea.focus();
+            textarea.select();
+        }
+        // Function to create regular field editor
+        function createRegularEditor(field, fieldName, originalValue) {
+            // Create input element
+            let inputElement;
+            if (fieldName === 'description') {
+                inputElement = document.createElement('textarea');
+                inputElement.style.width = '100%';
+                inputElement.style.minHeight = '60px';
+            } else {
+                inputElement = document.createElement('input');
+                inputElement.type = 'text';
+                inputElement.style.width = '100%';
+            }
+            
+            // Set current value (check if there's a pending change first)
+            let currentValue = originalValue;
+            if (window.pendingChanges[fieldName] !== undefined) {
+                currentValue = window.pendingChanges[fieldName];
+            }
+            
+            inputElement.value = currentValue || '';
+            inputElement.style.padding = '4px';
+            inputElement.style.border = '1px solid #ddd';
+            inputElement.style.borderRadius = '3px';
+            
+            // Replace field content with input
+            field.innerHTML = '';
+            field.appendChild(inputElement);
+            inputElement.focus();
+            
+            // Handle save on Enter or blur
+            function saveField() {
+                const newValue = inputElement.value.trim();
+                saveFieldLocally(fieldName, newValue, field, originalValue, false);
+            }
+            
+            inputElement.addEventListener('blur', saveField);
+            inputElement.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && fieldName !== 'description') {
+                    saveField();
+                } else if (e.key === 'Escape') {
+                    cancelFieldEdit(field, fieldName, false);
+                }
+            });
+        }
+        // Function to save a field locally (not to database yet)
+        function saveFieldLocally(fieldName, newValue, fieldElement, originalValue, isJsonbField) {
+            console.log(`saveFieldLocally called - Field: ${fieldName}, Value:`, newValue, `IsJSONB: ${isJsonbField}`);
+            
+            let processedValue;
+            
+            if (isJsonbField) {
+                // newValue is already an array for JSONB fields from the editor
+                processedValue = Array.isArray(newValue) ? newValue.slice() : []; // Make a copy
+                
+                // For Tags field, ensure each item doesn't have # prefix
+                if (fieldName === 'tags') {
+                    processedValue = processedValue.map(tag => {
+                        const tagStr = String(tag || '').trim();
+                        return tagStr.startsWith('#') ? tagStr.substring(1) : tagStr;
+                    }).filter(tag => tag); // Remove empty tags
+                }
+                
+                // For category, ensure all items are strings
+                if (fieldName === 'category') {
+                    processedValue = processedValue.map(cat => String(cat || '').trim()).filter(cat => cat);
+                }
+                
+                console.log(`Processing ${fieldName}:`, processedValue);
+            } else {
+                processedValue = newValue;
+            }
+            
+            // Store the change locally
+            let originalParsed;
+            try {
+                originalParsed = isJsonbField ? JSON.parse(originalValue || '[]') : originalValue;
+            } catch (e) {
+                originalParsed = isJsonbField ? [] : originalValue;
+            }
+            
+            console.log(`Comparing new:`, processedValue, `vs original:`, originalParsed);
+            
+            if (JSON.stringify(processedValue) !== JSON.stringify(originalParsed)) {
+                window.pendingChanges[fieldName] = processedValue;
+                fieldElement.classList.add('field-changed');
+                console.log(`✅ Added to pending changes - ${fieldName}:`, processedValue);
+                console.log(`Current pending changes:`, window.pendingChanges);
+            } else {
+                delete window.pendingChanges[fieldName];
+                fieldElement.classList.remove('field-changed');
+                console.log(`❌ No change detected for ${fieldName}`);
+            }
+            
+            // Update the display
+            updateFieldDisplay(fieldElement, fieldName, processedValue);
+            
+            // Update buttons and indicator
+            updateChangeIndicators();
+        }
+        // Function to cancel field edit
+        function cancelFieldEdit(field, fieldName, isJsonbField) {
+            const originalValue = field.getAttribute('data-original');
+            let displayValue;
+            
+            // Check if there's a pending change to display
+            if (window.pendingChanges[fieldName] !== undefined) {
+                displayValue = window.pendingChanges[fieldName];
+            } else {
+                try {
+                    displayValue = isJsonbField ? JSON.parse(originalValue || '[]') : originalValue;
+                } catch (e) {
+                    displayValue = isJsonbField ? [] : originalValue;
+                }
+            }
+            
+            updateFieldDisplay(field, fieldName, displayValue);
+        }
+        // Function to update change indicators
+        function updateChangeIndicators() {
+            const hasChanges = Object.keys(window.pendingChanges).length > 0;
+            const saveBtn = document.getElementById('save-changes-btn');
+            const cancelBtn = document.getElementById('cancel-changes-btn');
+            const indicator = document.getElementById('changes-indicator');
+            
+            if (saveBtn) saveBtn.disabled = !hasChanges;
+            if (cancelBtn) cancelBtn.disabled = !hasChanges;
+            if (indicator) {
+                indicator.style.display = hasChanges ? 'inline' : 'none';
+            }
+        }
+        // Function to save all changes to database
+        function saveAllChanges() {
+            console.log('🚀 saveAllChanges called');
+            console.log('Current pendingChanges:', window.pendingChanges);
+            
+            if (Object.keys(window.pendingChanges).length === 0) {
+                console.log('❌ No pending changes to save');
+                return;
+            }
+            
+            // Filter out null/empty values before sending
+            const filteredChanges = {};
+            for (const [key, value] of Object.entries(window.pendingChanges)) {
+                console.log(`Processing change: ${key} =`, value);
+                
+                if (value !== null && value !== undefined && value !== "" && value !== "null") {
+                    // For arrays, filter out empty items
+                    if (Array.isArray(value)) {
+                        const cleanArray = value.filter(item => 
+                            item !== null && item !== undefined && 
+                            String(item).trim() !== "" && String(item).trim() !== "null"
+                        );
+                        console.log(`Array ${key}: ${value.length} items -> ${cleanArray.length} clean items`);
+                        if (cleanArray.length > 0) {
+                            filteredChanges[key] = cleanArray;
+                            console.log(`✅ Added array ${key}:`, cleanArray);
+                        } else {
+                            console.log(`❌ Empty array for ${key}, skipping`);
+                        }
+                    } else {
+                        filteredChanges[key] = value;
+                        console.log(`✅ Added regular field ${key}:`, value);
+                    }
+                } else {
+                    console.log(`❌ Skipping null/empty ${key}:`, value);
+                }
+            }
+            
+            console.log('📤 Sending filtered changes to backend:', filteredChanges);
+            
+            if (Object.keys(filteredChanges).length === 0) {
+                console.log('❌ No valid changes to save after filtering');
+                return;
+            }
+            
+            // Send update to backend
+            fetch(`/projects/${encodeURIComponent(window.currentProject.name)}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(filteredChanges)
+            })
+            .then(response => {
+                console.log('📥 Backend response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('📥 Backend response data:', data);
+                if (data.success) {
+                    // Update successful - clear pending changes and update original values
+                    for (const [fieldName, value] of Object.entries(filteredChanges)) {
+                        const field = document.querySelector(`[data-field="${fieldName}"]`);
+                        if (field) {
+                            const isJsonbField = field.classList.contains('jsonb-field');
+                            field.setAttribute('data-original', isJsonbField ? JSON.stringify(value) : value);
+                            field.classList.remove('field-changed');
+                        }
+                        window.currentProject[fieldName] = value;
+                    }
+                    
+                    window.pendingChanges = {};
+                    updateChangeIndicators();
+                    
+                    // Refresh the project list
+                    loadProjects();
+                    
+                    console.log('✅ All changes saved successfully');
+                } else {
+                    console.error('❌ Save failed:', data.error);
+                    alert('Failed to save changes: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error saving changes:', error);
+                alert('Error saving changes: ' + error);
+            });
+        }
+        // Function to cancel all changes
+        function cancelAllChanges() {
+            // Restore all fields to their original values
+            for (const fieldName of Object.keys(window.pendingChanges)) {
+                const field = document.querySelector(`[data-field="${fieldName}"]`);
+                if (field) {
+                    const originalValue = field.getAttribute('data-original');
+                    const isJsonbField = field.classList.contains('jsonb-field');
+                    let value;
+                    try {
+                        value = isJsonbField ? JSON.parse(originalValue || '[]') : originalValue;
+                    } catch (e) {
+                        value = isJsonbField ? [] : originalValue;
+                    }
+                    
+                    updateFieldDisplay(field, fieldName, value);
+                    field.classList.remove('field-changed');
+                }
+            }
+            
+            window.pendingChanges = {};
+            updateChangeIndicators();
+        }
+        // Function to update field display
+        function updateFieldDisplay(fieldElement, fieldName, value) {
+            if (fieldName === 'tags') {
+                const tagsHtml = value && value.length > 0 ? 
+                    value.map(tag => `<span class="tag">#${tag}</span>`).join('') : 
+                    'No tags';
+                fieldElement.innerHTML = tagsHtml;
+            } else if (fieldName === 'category') {
+                const categoryDisplay = value && value.length > 0 ? 
+                    (Array.isArray(value) ? value.join(', ') : value) : 
+                    'Uncategorized';
+                fieldElement.textContent = categoryDisplay;
+            } else {
+                fieldElement.textContent = value || (fieldName === 'name' ? 'Unnamed Project' : 
+                                                    fieldName === 'owner' ? 'Unassigned' :
+                                                    fieldName === 'description' ? 'No description available' :
+                                                    'None');
+            }
         }
         // Handle chat functionality
         const chatForm = document.getElementById('chat-form');
