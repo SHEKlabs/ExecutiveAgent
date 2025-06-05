@@ -4,6 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Import Inter font for clean, modern typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Karla:wght@700&display=swap" rel="stylesheet">
     <title>ExecutiveAgent - Your Personal Project Assistant</title>
     <style>
         body {
@@ -51,6 +55,15 @@
         }
         .right-column {
             flex: 2;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 120px); /* Full height minus header and padding */
+        }
+        .right-column .section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
         .project-details {
             background-color: white;
@@ -62,6 +75,10 @@
             background-color: white;
             border-radius: 3px;
             padding: 10px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
         .search-container {
             display: flex;
@@ -192,15 +209,6 @@
             align-self: flex-end;
             margin-left: auto;
         }
-        .clear-chat {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: none;
-            border: none;
-            color: #999;
-            cursor: pointer;
-        }
         .detail-field {
             margin-bottom: 12px;
             padding: 8px;
@@ -237,7 +245,7 @@
             cursor: not-allowed;
         }
         .save-changes-btn:not(:disabled):hover {
-            background-color: #4a5c3c;
+            background-color: #59865d; /* slightly darker accent */
         }
         .cancel-changes-btn {
             background-color: #dc3545;
@@ -270,12 +278,282 @@
         .jsonb-editor button {
             font-size: 11px;
         }
+
+        /* === New Hybrid Neumorphism / Glassmorphism Theme === */
+        :root {
+            /* Core colour palette */
+            --bg-color: #EAF7EA;          /* very light jungle-green tint */
+            --surface-color: #FFFFFF;     /* clean white surface */
+            --accent-color: #5F8F63;      /* jungle-green accent */
+            --text-color: #333333;
+            /* Shadow helpers for neumorphism */
+            --shadow-light: rgba(255, 255, 255, 0.8);
+            --shadow-dark: rgba(163, 177, 138, 0.35);
+        }
+
+        /* General layout */
+        body {
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: "Inter", Arial, sans-serif;
+        }
+
+        header {
+            background: var(--surface-color);
+            color: var(--accent-color);
+            box-shadow: 4px 4px 8px var(--shadow-dark), -4px -4px 8px var(--shadow-light);
+        }
+
+        /* Neumorphic containers */
+        .section {
+            background: var(--bg-color);
+            border-radius: 20px;
+            padding: 15px;
+            box-shadow: 9px 9px 16px var(--shadow-dark), -9px -9px 16px var(--shadow-light);
+        }
+
+        .section-header {
+            background: transparent;
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        /* Glassmorphic surfaces */
+        .project-details,
+        .chat-container,
+        .jsonb-editor {
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(14px) saturate(160%);
+            -webkit-backdrop-filter: blur(14px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            box-shadow: 0 8px 16px rgba(31, 38, 135, 0.06);
+            border-radius: 16px;
+        }
+
+        /* Keep project list as solid card but soften styling */
+        .project-list {
+            background: var(--surface-color);
+            border-radius: 16px;
+            box-shadow: 6px 6px 12px rgba(0,0,0,0.05), -6px -6px 12px var(--shadow-light);
+        }
+
+        /* Inputs & search bar */
+        .search-container input {
+            background: var(--surface-color);
+            box-shadow: inset 4px 4px 6px rgba(0,0,0,0.05), inset -4px -4px 6px var(--shadow-light);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        /* Buttons */
+        .search-container button,
+        .add-project-btn,
+        .save-changes-btn,
+        .chat-input button {
+            background: var(--accent-color);
+            color: #fff;
+            transition: background 0.2s ease;
+        }
+        .search-container button:hover,
+        .add-project-btn:hover,
+        .save-changes-btn:not(:disabled):hover,
+        .chat-input button:hover {
+            background: #59865d; /* slightly darker accent */
+        }
+
+        /* Chat messages */
+        .assistant-message {
+            background: rgba(95, 143, 99, 0.15);
+        }
+        .user-message {
+            background: rgba(95, 143, 99, 0.12);
+        }
+
+        /* Tags */
+        .tag {
+            background: rgba(95, 143, 99, 0.1);
+            color: var(--accent-color);
+        }
+
+        /* Misc */
+        .clear-chat {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s ease;
+        }
+        
+        .clear-chat:hover {
+            background: #4CAF50;
+        }
+
+        /* === Minimalism & Palette Refinement === */
+        :root {
+            --bg-color: #7A9B7E;          /* darker jungle olive background */
+            --surface-color: #F9FFF9;     /* flat surface blending with bg */
+            --accent-color: #66BB6A;      /* lighter forest green for buttons */
+            --accent-dark: #355F2F;       /* deep olive for text */
+            --text-color: #2B2B2B;
+            --tag-bg: #008080;            /* teal green for tags */
+            --assistant-bg: #4DB6AC;      /* teal green for assistant messages */
+        }
+
+        /* Typography */
+        body {
+            font-family: "Poppins", "Inter", Arial, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        /* Header now blends with page */
+        header {
+            background: var(--bg-color);
+            color: var(--accent-dark);
+            box-shadow: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Design credit styling */
+        .design-credit {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 12px;
+            color: var(--accent-dark);
+        }
+        
+        .design-credit .designed-by {
+            font-style: italic;
+        }
+        
+        .design-credit .shek-labs {
+            font-family: "Karla", sans-serif;
+            font-weight: 700;
+        }
+
+        /* Flatten primary containers */
+        .section,
+        .project-details,
+        .chat-container {
+            background: var(--surface-color);
+            box-shadow: 4px 4px 8px rgba(0,0,0,0.04), -4px -4px 8px rgba(255,255,255,0.6);
+            border-radius: 14px;
+        }
+
+        /* Detail fields blend smoothly */
+        .detail-field {
+            background: var(--surface-color);
+        }
+
+        /* Darker green for readable accents */
+        .section-header,
+        .tag,
+        .add-project-btn,
+        .search-container button,
+        .save-changes-btn,
+        .chat-input button {
+            color: var(--accent-dark);
+        }
+
+        /* Button backgrounds */
+        .add-project-btn,
+        .search-container button,
+        .save-changes-btn,
+        .chat-input button,
+        .filter-btn {
+            background: var(--accent-color);
+            color: white; /* white text for buttons */
+        }
+
+        .add-project-btn:hover,
+        .search-container button:hover,
+        .save-changes-btn:not(:disabled):hover,
+        .chat-input button:hover,
+        .filter-btn:hover {
+            background: #4CAF50; /* darker forest green hover */
+        }
+
+        /* Project list item hover glow */
+        .project-item {
+            transition: box-shadow 0.2s ease, transform 0.2s ease;
+        }
+        .project-item:hover {
+            box-shadow: 0 0 6px rgba(86, 122, 79, 0.45);
+            transform: translateY(-2px);
+        }
+
+        /* Glass effect for interactive (clicked) elements */
+        .glass {
+            background: rgba(255, 255, 255, 0.4) !important;
+            backdrop-filter: blur(12px) saturate(160%) !important;
+            -webkit-backdrop-filter: blur(12px) saturate(160%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        }
+
+        /* Chat text size reduction */
+        .chat-messages {
+            font-size: 0.9em;
+        }
+
+        /* Maldives blue for tags */
+        .tag {
+            background: var(--tag-bg);
+            color: white;
+        }
+
+        /* Assistant message background */
+        .assistant-message {
+            background: var(--assistant-bg);
+            color: var(--text-color);
+        }
+
+        /* Scrollbar for Project List */
+        .project-list {
+            height: calc(100vh - 200px); /* Dynamic height with margin */
+        }
+        
+        #projects-container {
+            max-height: calc(100vh - 350px); /* Contained within project list */
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-color) var(--surface-color);
+        }
+
+        #projects-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #projects-container::-webkit-scrollbar-track {
+            background: var(--surface-color);
+        }
+
+        #projects-container::-webkit-scrollbar-thumb {
+            background-color: var(--accent-color);
+            border-radius: 4px;
+        }
+
+        /* Scrollbar for Project List */
+        #projects-container {
+            flex: 1;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-color) var(--surface-color);
+        }
     </style>
 </head>
 <body>
     <header>
+        <div class="design-credit">
+            <span class="designed-by">Designed by:</span> <span class="shek-labs">SHEK Labs</span>
+        </div>
         <h1>ExecutiveAgent</h1>
-        <span>Your Personal Project Assistant</span>
+        <span>Your AI Executive Assistant</span>
     </header>
     <div class="container">
         <div class="column left-column">
@@ -286,10 +564,7 @@
                 </div>
             </div>
             <div class="section">
-                <div class="section-header">
-                    Project Assistant
-                    <button class="clear-chat" onclick="clearChat()">🗑️</button>
-                </div>
+                <div class="section-header">Project Assistant</div>
                 <div class="chat-container">
                     <div id="chat-messages" class="chat-messages">
                         <div class="assistant-message">
@@ -310,6 +585,7 @@
                     </form>
                 </div>
             </div>
+            <button class="clear-chat" onclick="clearChat()" style="margin-top: 10px; align-self: flex-start;">🗑️ Clear Chat</button>
         </div>
         <div class="column right-column">
             <div class="section">
