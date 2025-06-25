@@ -78,6 +78,15 @@ def get_projects_endpoint():
     projects = get_projects()
     return jsonify({"projects": projects})
 
+@app.route("/tasks")
+def get_tasks_endpoint():
+    """API endpoint to get tasks"""
+    if supabase_client:
+        tasks = supabase_client.get_tasks()
+        return jsonify({"tasks": tasks})
+    else:
+        return jsonify({"tasks": []})
+
 @app.route("/projects/<project_name>", methods=["PUT"])
 def update_project(project_name):
     """API endpoint to update a project"""
@@ -103,6 +112,24 @@ def update_project(project_name):
             
     except Exception as e:
         print(f"Error in update_project route: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/tasks/<int:task_id>", methods=["PUT"])
+def update_task(task_id):
+    """API endpoint to update a task"""
+    try:
+        updates = request.get_json()
+        if not updates:
+            return jsonify({"success": False, "error": "No updates provided"}), 400
+        
+        if supabase_client:
+            result = supabase_client.update_task(task_id, updates)
+            return jsonify(result)
+        else:
+            return jsonify({"success": False, "error": "Database not available"}), 500
+            
+    except Exception as e:
+        print(f"Error in update_task route: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/chat", methods=["POST"])

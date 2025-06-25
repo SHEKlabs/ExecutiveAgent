@@ -43,6 +43,19 @@ class SupabaseClient:
             "contributors": "Contributors",
             "description": "Description"
         }
+        
+        # Field mapping for Tasks
+        self.db_to_frontend_tasks = {
+            "Task": "name",
+            "Category": "category",
+            "Project": "project",
+            "Description": "description",
+            "Owner": "owner",
+            "Deadline": "deadline",
+            "Priority": "priority",
+            "Notes": "notes",
+        }
+        self.frontend_to_db_tasks = {v: k for k, v in self.db_to_frontend_tasks.items()}
     
     def get_projects(self, filters=None):
         """
@@ -87,6 +100,55 @@ class SupabaseClient:
                 }
             ]
     
+    def get_tasks(self, filters=None):
+        """
+        Get all tasks from Supabase
+        """
+        try:
+            tasks_table = os.environ.get("TASKS_TABLE", "Tasks-Abhishek_Raol")
+            print(f"Getting tasks from table: {tasks_table}")
+            query = self.client.table(tasks_table).select('*')
+            
+            if filters:
+                for column, operator, value in filters:
+                    query = query.filter(column, operator, value)
+            
+            result = query.execute()
+            print(f"Raw result from Supabase (tasks): {result.data[:2] if result.data else 'No data'}")
+            
+            if result.data:
+                # Convert field names from DB to frontend format
+                result.data = self.map_db_to_frontend_tasks(result.data)
+                print(f"Mapped task data: {result.data[:2] if result.data else 'No data'}")
+            
+            return result.data
+        except Exception as e:
+            print(f"Error fetching tasks: {str(e)}")
+            traceback.print_exc()
+            # Return sample data as fallback
+            return [
+                {
+                    "name": "Design new UI",
+                    "project": "Executive Agent",
+                    "category": ["UI/UX"],
+                    "owner": "Abhishek",
+                    "deadline": "2025-07-15",
+                    "priority": 1,
+                    "description": "Create mockups for the new dashboard.",
+                    "notes": "Check out dribbble for inspiration."
+                },
+                {
+                    "name": "Fix login bug",
+                    "project": "Data Pipeline",
+                    "category": ["Backend", "Bug"],
+                    "owner": "Sarah",
+                    "deadline": "2025-07-10",
+                    "priority": 1,
+                    "description": "Users are reporting they cannot log in.",
+                    "notes": ""
+                }
+            ]
+    
     def map_db_to_frontend(self, data_list):
         """Map database field names to frontend field names"""
         if not data_list:
@@ -113,6 +175,29 @@ class SupabaseClient:
             
         return result
         
+    def map_db_to_frontend_tasks(self, data_list):
+        """Map database field names to frontend field names for tasks"""
+        if not data_list:
+            return data_list
+            
+        result = []
+        for item in data_list:
+            new_item = {}
+            if 'id' in item:
+                new_item['id'] = item['id']
+                
+            for db_field, frontend_field in self.db_to_frontend_tasks.items():
+                if db_field in item:
+                    new_item[frontend_field] = item[db_field]
+            
+            for key, value in item.items():
+                if key not in self.db_to_frontend_tasks and key != 'id':
+                    new_item[key] = value
+                    
+            result.append(new_item)
+            
+        return result
+
     def map_frontend_to_db(self, data):
         """Map frontend field names to database field names"""
         if not data:
@@ -128,6 +213,22 @@ class SupabaseClient:
         # Keep any other fields not in the mapping
         for key, value in data.items():
             if key not in self.frontend_to_db:
+                result[key] = value
+                
+        return result
+
+    def map_frontend_to_db_tasks(self, data):
+        """Map frontend field names to database field names for tasks"""
+        if not data:
+            return data
+            
+        result = {}
+        for frontend_field, db_field in self.frontend_to_db_tasks.items():
+            if frontend_field in data:
+                result[db_field] = data[frontend_field]
+        
+        for key, value in data.items():
+            if key not in self.frontend_to_db_tasks:
                 result[key] = value
                 
         return result
@@ -159,7 +260,7 @@ class SupabaseClient:
             print(f"After mapping to DB format: {db_updates}")
             
             # Handle JSONB fields properly
-            db_updates = self.format_jsonb_fields(db_updates)
+            db_updates = self.format_jsonb_fields(db_updates, item_type='project')
             print(f"After formatting JSONB fields: {db_updates}")
             
             # Final null check - remove any fields that ended up null
@@ -188,15 +289,63 @@ class SupabaseClient:
             traceback.print_exc()
             return {"success": False, "error": str(e)}
 
-    def format_jsonb_fields(self, data):
+    def update_task(self, task_id, updates):
+        """
+        Update a task in Supabase
+        task_id: The primary key value (id)
+        updates: Dictionary of fields to update (in frontend format)
+        """
+        try:
+            print(f"Updating task: {task_id}")
+            print(f"Updates (frontend format): {updates}")
+            
+            # Filter out None/null values
+            filtered_updates = {k: v for k, v in updates.items() if v is not None and v != "null" and v != ""}
+            print(f"After filtering null values: {filtered_updates}")
+
+            if not filtered_updates:
+                return {"success": True, "message": "No changes to save"}
+
+            # Map to DB format
+            db_updates = self.map_frontend_to_db_tasks(filtered_updates)
+            print(f"After mapping to DB format: {db_updates}")
+            
+            # Format JSONB
+            db_updates = self.format_jsonb_fields(db_updates, item_type='task')
+            print(f"After formatting JSONB fields: {db_updates}")
+
+            # Final null check
+            final_updates = {k: v for k, v in db_updates.items() if v is not None and v != "null"}
+            print(f"Final updates to send to Supabase: {final_updates}")
+
+            if not final_updates:
+                return {"success": True, "message": "No changes to save"}
+
+            tasks_table = os.environ.get("TASKS_TABLE", "Tasks-Abhishek_Raol")
+            result = self.client.table(tasks_table).update(final_updates).eq("id", task_id).execute()
+            
+            print(f"Update result: {result}")
+            return {"success": True, "data": result.data}
+            
+        except Exception as e:
+            print(f"Error updating task: {str(e)}")
+            traceback.print_exc()
+            return {"success": False, "error": str(e)}
+
+    def format_jsonb_fields(self, data, item_type='project'):
         """
         Ensure JSONB fields are properly formatted as arrays
         """
         if not data:
             return data
             
-        # Define which fields are JSONB
-        jsonb_fields = ["Tags", "Category/Section"]
+        # Define which fields are JSONB based on item type
+        if item_type == 'project':
+            jsonb_fields = ["Tags", "Category/Section"]
+        elif item_type == 'task':
+            jsonb_fields = ["Category"]
+        else:
+            jsonb_fields = []
         
         result = {}
         

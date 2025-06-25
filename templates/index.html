@@ -10,276 +10,208 @@
     <link href="https://fonts.googleapis.com/css2?family=Karla:wght@700&display=swap" rel="stylesheet">
     <title>ExecutiveAgent - Your Personal Project Assistant</title>
     <style>
+        /* General styles */
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 0;
             color: #333;
-            background-color: #4c5b3d;
+            background-color: var(--bg-color, #f4f7f6);
         }
-        header {
-            background-color: #222;
-            color: white;
-            padding: 15px 20px;
+
+        :root {
+            --bg-color: #f4f7f6;
+            --surface-color: #ffffff;
+            --accent-color: #556b45;
+            --text-color: #333333;
+            --tag-bg: #e8f5e9;
+        }
+
+        .header {
+            background-color: #fff;
+            padding: 10px 20px;
+            border-bottom: 1px solid #ddd;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .container {
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: var(--accent-color);
+        }
+        
+        .header p {
+            margin: 0;
+            color: #666;
+        }
+        
+        .designed-by {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .main-container {
             display: flex;
             padding: 20px;
             gap: 20px;
         }
-        .section {
-            background-color: #556b45;
-            border-radius: 5px;
-            padding: 10px;
-            margin-bottom: 20px;
+
+        .left-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
+
+        .projects-list-panel {
+            flex: 1.2;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .section {
+            background: var(--surface-color);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
         .section-header {
-            background-color: #556b45;
-            color: white;
-            padding: 10px;
-            margin: -10px -10px 10px -10px;
-            border-radius: 5px 5px 0 0;
             font-weight: bold;
+            margin-bottom: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .column {
-            flex: 1;
+
+        .item-container {
+            max-height: 60vh;
+            overflow-y: auto;
         }
-        .left-column {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            height: calc(100vh - 120px); /* Full height minus header and padding */
-        }
-        .right-column {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            height: calc(100vh - 120px); /* Full height minus header and padding */
-        }
-        .right-column .section {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .project-details {
-            background-color: white;
-            padding: 15px;
-            border-radius: 3px;
-            min-height: 150px;
-        }
-        .project-list {
-            background-color: white;
-            border-radius: 3px;
-            padding: 10px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .search-container {
-            display: flex;
-            margin-bottom: 15px;
-        }
-        .search-container input {
-            flex: 1;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-        }
-        .search-container button {
-            padding: 8px 15px;
-            margin-left: 5px;
-            background-color: #556b45;
-            color: white;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-        }
+
         .project-item {
+            padding: 15px;
             border-bottom: 1px solid #eee;
-            padding: 10px 0;
-            position: relative;
+            cursor: pointer;
+            transition: background-color 0.2s;
         }
+
+        .project-item:hover {
+            background-color: #f9f9f9;
+        }
+
         .project-name {
             font-weight: bold;
-            font-size: 16px;
-            margin-bottom: 5px;
         }
-        .project-category {
-            color: #666;
-            font-size: 12px;
-            position: absolute;
-            top: 10px;
-            right: 0;
-        }
-        .project-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin-bottom: 5px;
-        }
-        .project-description {
-            font-size: 12px;
+
+        .project-category, .project-description {
+            font-size: 14px;
             color: #666;
             margin-top: 5px;
         }
+
+        .project-tags {
+            margin-top: 10px;
+        }
+
         .tag {
-            background-color: #f0f0f0;
-            padding: 2px 8px;
+            display: inline-block;
+            background-color: var(--tag-bg);
+            color: var(--accent-color);
+            padding: 3px 8px;
             border-radius: 12px;
             font-size: 12px;
-            color: #555;
+            margin-right: 5px;
         }
-        .project-owner {
-            font-size: 12px;
-            color: #666;
-        }
-        .no-description {
-            color: #999;
-            font-style: italic;
-            font-size: 12px;
-        }
-        .chat-container {
-            background-color: white;
-            border-radius: 3px;
-            padding: 15px;
+
+        /* View switcher styles */
+        .view-switcher {
             display: flex;
-            flex-direction: column;
-            height: 300px;
+            background-color: #e9ecef;
+            border-radius: 8px;
+            padding: 4px;
         }
-        .chat-messages {
+
+        .view-btn {
             flex: 1;
-            overflow-y: auto;
-            margin-bottom: 10px;
-            padding: 10px;
-            background-color: #f9f9f9;
-            border-radius: 3px;
-        }
-        .chat-input {
-            display: flex;
-        }
-        .chat-input input {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 20px;
-        }
-        .chat-input button {
-            background-color: #556b45;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            padding: 0 20px;
-            margin-left: 10px;
-            cursor: pointer;
-        }
-        .add-project-btn {
-            background-color: #556b45;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        .filter-btn {
-            background-color: white;
-            border: 1px solid #ddd;
-            padding: 8px 15px;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        .assistant-message {
-            background-color: #b7dcedb4;
             padding: 8px 12px;
-            border-radius: 15px 15px 15px 0;
-            margin-bottom: 10px;
-            max-width: 80%;
-            align-self: flex-start;
+            border: none;
+            background-color: transparent;
+            cursor: pointer;
+            font-weight: 500;
+            border-radius: 6px;
+            transition: background-color 0.3s, color 0.3s;
         }
+
+        .view-btn.active {
+            background-color: #fff;
+            color: var(--accent-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .chat-messages {
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .user-message, .assistant-message {
+            padding: 8px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            max-width: 80%;
+        }
+
         .user-message {
             background-color: #e8f5e9;
-            padding: 8px 12px;
-            border-radius: 15px 15px 0 15px;
-            margin-bottom: 10px;
-            max-width: 80%;
             align-self: flex-end;
             margin-left: auto;
         }
-        .detail-field {
-            margin-bottom: 12px;
-            padding: 8px;
-            border-radius: 4px;
-            background-color: #f9f9f9;
+
+        .assistant-message {
+            background-color: #f1f1f1;
+            align-self: flex-start;
         }
+
+        .chat-form {
+            display: flex;
+        }
+
+        .chat-form input {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+        }
+
+        .chat-form button {
+            padding: 8px 12px;
+            border: none;
+            background-color: var(--accent-color);
+            color: white;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+        }
+
+        /* Editable fields */
         .editable-field {
             cursor: pointer;
-            padding: 4px 8px;
+            padding: 2px 4px;
             border-radius: 3px;
             transition: background-color 0.2s;
-            display: inline-block;
-            min-width: 50px;
-            border: 1px solid transparent;
         }
         .editable-field:hover {
-            background-color: #e8f4f8;
-            border-color: #ddd;
-        }
-        .editable-field .tag {
-            margin-right: 5px;
-        }
-        .save-changes-btn {
-            background-color: #556b45;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 10px;
-        }
-        .save-changes-btn:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        .save-changes-btn:not(:disabled):hover {
-            background-color: #59865d; /* slightly darker accent */
-        }
-        .cancel-changes-btn {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 10px;
-        }
-        .cancel-changes-btn:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        .cancel-changes-btn:not(:disabled):hover {
-            background-color: #c82333;
+            background-color: #f0f0f0;
         }
         .field-changed {
             background-color: #fff3cd !important;
             border-color: #ffc107 !important;
-        }
-        .jsonb-editor {
-            position: relative;
-            z-index: 10;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .jsonb-editor input {
-            font-size: 12px;
-        }
-        .jsonb-editor button {
-            font-size: 11px;
         }
 
         /* === New Hybrid Neumorphism / Glassmorphism Theme === */
@@ -551,80 +483,97 @@
     </style>
 </head>
 <body>
-    <header>
-        <div class="design-credit">
-            <span class="designed-by">Designed by:</span> <span class="shek-labs">SHEK Labs</span>
-        </div>
-        <h1>Executive Agent</h1>    <!-- THIS IS THE APP NAME TITLE SET HERE !!!!! --> 
-        <span>Your AI Executive Assistant</span>
-    </header>
-    <div class="container">
-        <div class="column left-column">
+    <div class="header">
+        <h1>Executive Agent</h1>
+        <p>Your AI Executive Assistant</p>
+        <div class="designed-by">Designed by: SHEK Labs</div>
+    </div>
+    <div class="main-container">
+        <!-- Left panel for details and assistant -->
+        <div class="left-panel">
             <div class="section">
-                <div class="section-header">Project Details</div>
-                <div class="project-details">
-                    <p>Select a project to view details</p>
+                <div class="section-header" id="details-header">
+                    Project Details
+                </div>
+                <div class="project-details" id="details-container">
+                    <h2>Select an item to view details</h2>
                 </div>
             </div>
-            <div class="section">
-                <div class="section-header">Project Assistant</div>
-                <div class="chat-container">
-                    <div id="chat-messages" class="chat-messages">
-                        <div class="assistant-message">
-                            👋 Hello! I'm your project assistant. How can I help you today?
-                        </div>
-                        <div class="assistant-message">
-                            Try asking me:
-                            <ul>
-                                <li>Show all projects</li>
-                                <li>Find projects with tag #AI</li>
-                                <li>Show projects owned by Abhishek</li>
-                            </ul>
-                        </div>
-                    </div>
-                    <form id="chat-form" class="chat-input">
-                        <input type="text" id="message" placeholder="Type your message...">
-                        <button type="submit">➤</button>
-                    </form>
-                </div>
-            </div>
-            <button class="clear-chat" onclick="clearChat()" style="margin-top: 10px; align-self: flex-start;">🗑️ Clear Chat</button>
-        </div>
-        <div class="column right-column">
             <div class="section">
                 <div class="section-header">
-                    Projects
-                    <div style="display: flex; flex-direction: column; align-items: flex-end; font-size: 14px;">
-                        <span>Table: {{ supabase_table }}</span>
-                        <span style="font-size: 12px; color: #ccc;">Supabase Project: {{ supabase_project }}</span>
-                    </div>
-                    <button class="add-project-btn">+ Add Project</button>
+                    <span>💡 Project Assistant</span>
+                    <button onclick="clearChat()" style="background:none; border:none; cursor:pointer;">Clear</button>
                 </div>
-                <div class="project-list">
-                    <div class="search-container">
-                        <input type="text" id="search-projects" placeholder="Search projects...">
-                        <button id="search-btn">Search</button>
-                        <button class="filter-btn">Filter ▼</button>
+                <div id="chat-messages" class="chat-messages">
+                    <div class="assistant-message">
+                        <strong>Try asking me:</strong>
+                        <ul>
+                            <li>Show all projects</li>
+                            <li>Find projects with tag #AI</li>
+                            <li>Show projects owned by Abhishek</li>
+                        </ul>
                     </div>
-                    <h3>Project List</h3>
-                    <div id="projects-container">
-                        <!-- Projects will be loaded here -->
+                </div>
+                <form id="chat-form" class="chat-form">
+                    <input type="text" id="message" placeholder="Type your message..." autocomplete="off">
+                    <button type="submit">→</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right panel for lists -->
+        <div class="projects-list-panel">
+            <div class="section">
+                <div class="list-header">
+                    <div class="view-switcher">
+                        <button id="show-projects-btn" class="view-btn active" onclick="showView('projects')">Projects</button>
+                        <button id="show-tasks-btn" class="view-btn" onclick="showView('tasks')">Tasks</button>
                     </div>
+                </div>
+                <div id="item-list-container" class="item-container">
+                    <!-- Projects or tasks will be loaded here -->
                 </div>
             </div>
         </div>
     </div>
     <script>
+        // Store the currently active view
+        let currentView = 'projects';
+
+        function showView(viewType) {
+            currentView = viewType;
+            const projectsBtn = document.getElementById('show-projects-btn');
+            const tasksBtn = document.getElementById('show-tasks-btn');
+            const detailsHeader = document.getElementById('details-header');
+            const detailsContainer = document.getElementById('details-container');
+
+            if (viewType === 'projects') {
+                projectsBtn.classList.add('active');
+                tasksBtn.classList.remove('active');
+                detailsHeader.textContent = 'Project Details';
+                detailsContainer.innerHTML = '<h2>Select a project to view details</h2>';
+                loadProjects();
+            } else {
+                projectsBtn.classList.remove('active');
+                tasksBtn.classList.add('active');
+                detailsHeader.textContent = 'Task Details';
+                detailsContainer.innerHTML = '<h2>Select a task to view details</h2>';
+                loadTasks();
+            }
+        }
+
         // Function to load projects
         function loadProjects() {
+            console.log('Loading projects...');
             fetch('/projects')
                 .then(response => response.json())
                 .then(data => {
-                    const projectsContainer = document.getElementById('projects-container');
-                    projectsContainer.innerHTML = '';
+                    const container = document.getElementById('item-list-container');
+                    container.innerHTML = '';
                     data.projects.forEach(project => {
                         const projectElement = document.createElement('div');
                         projectElement.className = 'project-item';
+                        
                         let tagsHtml = '';
                         if (project.tags && project.tags.length > 0) {
                             tagsHtml = project.tags.map(tag => {
@@ -633,6 +582,7 @@
                                 return `<span class="tag">${displayTag}</span>`;
                             }).join('');
                         }
+
                         projectElement.innerHTML = `
                             <div class="project-name">${project.name || 'Unnamed Project'}</div>
                             <div class="project-category">${project.category || 'Uncategorized'}</div>
@@ -642,17 +592,55 @@
                         projectElement.addEventListener('click', () => {
                             displayProjectDetails(project);
                         });
-                        projectsContainer.appendChild(projectElement);
+                        container.appendChild(projectElement);
                     });
                 })
                 .catch(error => {
                     console.error('Error loading projects:', error);
-                    document.getElementById('projects-container').innerHTML = '<p>Error loading projects. Please try again later.</p>';
+                    document.getElementById('item-list-container').innerHTML = '<p>Error loading projects. Please try again later.</p>';
                 });
         }
+
+        // Function to load tasks
+        function loadTasks() {
+            console.log('Loading tasks...');
+            fetch('/tasks')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('item-list-container');
+                    container.innerHTML = '';
+                    if (data.tasks && data.tasks.length > 0) {
+                        data.tasks.forEach(task => {
+                            const taskElement = document.createElement('div');
+                            taskElement.className = 'project-item'; // Reuse styling
+                            
+                            taskElement.innerHTML = `
+                                <div class="project-name">${task.name || 'Unnamed Task'}</div>
+                                <div class="project-category">Project: ${task.project || 'None'}</div>
+                                <div class="project-tags">
+                                    <span class="tag">Priority: ${task.priority || 'N/A'}</span>
+                                    ${task.deadline ? `<span class="tag">Due: ${task.deadline}</span>` : ''}
+                                </div>
+                                <div class="project-description">${task.description || 'No description'}</div>
+                            `;
+                            taskElement.addEventListener('click', () => {
+                                displayTaskDetails(task);
+                            });
+                            container.appendChild(taskElement);
+                        });
+                    } else {
+                        container.innerHTML = '<p>No tasks found.</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading tasks:', error);
+                    document.getElementById('item-list-container').innerHTML = '<p>Error loading tasks. Please try again later.</p>';
+                });
+        }
+
         // Function to display project details
         function displayProjectDetails(project) {
-            const detailsContainer = document.querySelector('.project-details');
+            const detailsContainer = document.getElementById('details-container');
             
             console.log('📋 Displaying project details for:', project.name);
             console.log('Raw project data:', project);
@@ -741,7 +729,7 @@
                     Click on any field to edit it. For Tags and Category, use the simple text editor with comma-separated values. Tags can be entered with or without # (the # will be added automatically for display).
                 </div>
                 <div style="margin-top: 15px; display: flex; gap: 10px; align-items: center;">
-                    <button id="save-changes-btn" class="save-changes-btn" onclick="saveAllChanges()" disabled>Save Changes</button>
+                    <button id="save-changes-btn" class="save-changes-btn" onclick="saveAllChanges('project')" disabled>Save Changes</button>
                     <button id="cancel-changes-btn" class="cancel-changes-btn" onclick="cancelAllChanges()" disabled>Cancel Changes</button>
                     <span id="changes-indicator" style="font-size: 12px; color: #666; display: none;">You have unsaved changes</span>
                 </div>
@@ -761,6 +749,74 @@
                 field.addEventListener('click', makeFieldEditable);
             });
         }
+
+        function displayTaskDetails(task) {
+            const detailsContainer = document.getElementById('details-container');
+            console.log('📋 Displaying task details for:', task.name);
+            console.log('Raw task data:', task);
+            
+            let category = [];
+            if (task.category) {
+                if (Array.isArray(task.category)) {
+                    category = task.category.map(cat => String(cat || '').trim()).filter(cat => cat);
+                } else {
+                    const catStr = String(task.category).trim();
+                    if (catStr) category = [catStr];
+                }
+            }
+
+            let categoryDisplay = category.join(', ');
+
+            detailsContainer.innerHTML = `
+                <h2>Task Details</h2>
+                <div class="detail-field">
+                    <strong>Task:</strong> 
+                    <span class="editable-field" data-field="name" data-original="${escapeHtml(task.name || '')}">${task.name || 'Unnamed Task'}</span>
+                </div>
+                <div class="detail-field">
+                    <strong>Project:</strong> 
+                    <span class="editable-field" data-field="project" data-original="${escapeHtml(task.project || '')}">${task.project || 'No Project'}</span>
+                </div>
+                <div class="detail-field">
+                    <strong>Category:</strong> 
+                    <span class="editable-field jsonb-field" data-field="category" data-original="${escapeHtml(JSON.stringify(category))}">${categoryDisplay || 'Uncategorized'}</span>
+                </div>
+                <div class="detail-field">
+                    <strong>Owner:</strong> 
+                    <span class="editable-field" data-field="owner" data-original="${escapeHtml(task.owner || '')}">${task.owner || 'Unassigned'}</span>
+                </div>
+                <div class="detail-field">
+                    <strong>Deadline:</strong> 
+                    <span class="editable-field" data-field="deadline" data-original="${escapeHtml(task.deadline || '')}">${task.deadline || 'No Deadline'}</span>
+                </div>
+                <div class="detail-field">
+                    <strong>Priority:</strong> 
+                    <span class="editable-field" data-field="priority" data-original="${escapeHtml(task.priority || '')}">${task.priority || 'N/A'}</span>
+                </div>
+                <div class="detail-field">
+                    <strong>Description:</strong> 
+                    <span class="editable-field" data-field="description" data-original="${escapeHtml(task.description || '')}">${task.description || 'No description'}</span>
+                </div>
+                <div class="detail-field">
+                    <strong>Notes:</strong> 
+                    <span class="editable-field" data-field="notes" data-original="${escapeHtml(task.notes || '')}">${task.notes || 'No notes'}</span>
+                </div>
+                <div style="margin-top: 15px; display: flex; gap: 10px; align-items: center;">
+                    <button id="save-changes-btn" class="save-changes-btn" onclick="saveAllChanges('task')" disabled>Save Changes</button>
+                    <button id="cancel-changes-btn" class="cancel-changes-btn" onclick="cancelAllChanges()" disabled>Cancel Changes</button>
+                    <span id="changes-indicator" style="font-size: 12px; color: #666; display: none;">You have unsaved changes</span>
+                </div>
+            `;
+            
+            window.currentTask = task;
+            window.currentTask.category = category;
+            window.pendingChanges = {};
+            
+            document.querySelectorAll('.editable-field').forEach(field => {
+                field.addEventListener('click', makeFieldEditable);
+            });
+        }
+
         // Function to escape HTML for safe attribute values
         function escapeHtml(text) {
             const div = document.createElement('div');
@@ -1017,8 +1073,8 @@
             }
         }
         // Function to save all changes to database
-        function saveAllChanges() {
-            console.log('🚀 saveAllChanges called');
+        function saveAllChanges(itemType = 'project') {
+            console.log(`🚀 saveAllChanges called for ${itemType}`);
             console.log('Current pendingChanges:', window.pendingChanges);
             
             if (Object.keys(window.pendingChanges).length === 0) {
@@ -1060,9 +1116,20 @@
                 console.log('❌ No valid changes to save after filtering');
                 return;
             }
+
+            let url = '';
+            let currentItem = {};
+
+            if (itemType === 'project') {
+                url = `/projects/${encodeURIComponent(window.currentProject.name)}`;
+                currentItem = window.currentProject;
+            } else {
+                url = `/tasks/${window.currentTask.id}`;
+                currentItem = window.currentTask;
+            }
             
             // Send update to backend
-            fetch(`/projects/${encodeURIComponent(window.currentProject.name)}`, {
+            fetch(url, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1084,14 +1151,18 @@
                             field.setAttribute('data-original', isJsonbField ? JSON.stringify(value) : value);
                             field.classList.remove('field-changed');
                         }
-                        window.currentProject[fieldName] = value;
+                        currentItem[fieldName] = value;
                     }
                     
                     window.pendingChanges = {};
                     updateChangeIndicators();
                     
-                    // Refresh the project list
-                    loadProjects();
+                    // Refresh the appropriate list
+                    if (itemType === 'project') {
+                        loadProjects();
+                    } else {
+                        loadTasks();
+                    }
                     
                     console.log('✅ All changes saved successfully');
                 } else {
@@ -1196,7 +1267,7 @@
             chatMessages.innerHTML = '';
         }
         // Load projects on page load
-        window.onload = loadProjects;
+        window.onload = () => showView('projects');
     </script>
 </body>
 </html>
