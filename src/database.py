@@ -220,16 +220,26 @@ class SupabaseClient:
                 
                 # If it's already a list
                 if isinstance(value, list):
-                    processed_array = [str(item).strip() for item in value if item is not None and str(item).strip() != "null" and str(item).strip() != ""]
+                    if field == "Tags":
+                        # For tags, ensure no # prefix in storage
+                        processed_array = [str(item).strip().lstrip('#') for item in value if item is not None and str(item).strip() != "null" and str(item).strip() != ""]
+                    else:
+                        processed_array = [str(item).strip() for item in value if item is not None and str(item).strip() != "null" and str(item).strip() != ""]
                 # If it's a string that looks like JSON
                 elif isinstance(value, str):
                     if value.strip().startswith('[') and value.strip().endswith(']'):
                         try:
                             parsed = json.loads(value)
                             if isinstance(parsed, list):
-                                processed_array = [str(item).strip() for item in parsed if item is not None and str(item).strip() != "null" and str(item).strip() != ""]
+                                if field == "Tags":
+                                    # For tags, ensure no # prefix in storage
+                                    processed_array = [str(item).strip().lstrip('#') for item in parsed if item is not None and str(item).strip() != "null" and str(item).strip() != ""]
+                                else:
+                                    processed_array = [str(item).strip() for item in parsed if item is not None and str(item).strip() != "null" and str(item).strip() != ""]
                             else:
                                 str_val = str(parsed).strip()
+                                if field == "Tags":
+                                    str_val = str_val.lstrip('#')
                                 if str_val and str_val != "null":
                                     processed_array = [str_val]
                         except json.JSONDecodeError:
@@ -240,11 +250,15 @@ class SupabaseClient:
                     else:
                         # Regular string
                         str_val = value.strip()
+                        if field == "Tags":
+                            str_val = str_val.lstrip('#')
                         if str_val and str_val != "null":
                             processed_array = [str_val]
                 # For any other type
                 else:
                     str_val = str(value).strip()
+                    if field == "Tags":
+                        str_val = str_val.lstrip('#')
                     if str_val and str_val != "null":
                         processed_array = [str_val]
                 

@@ -627,7 +627,11 @@
                         projectElement.className = 'project-item';
                         let tagsHtml = '';
                         if (project.tags && project.tags.length > 0) {
-                            tagsHtml = project.tags.map(tag => `<span class="tag">#${tag}</span>`).join('');
+                            tagsHtml = project.tags.map(tag => {
+                                const cleanTag = String(tag || '').trim();
+                                const displayTag = cleanTag.startsWith('#') ? cleanTag : `#${cleanTag}`;
+                                return `<span class="tag">${displayTag}</span>`;
+                            }).join('');
                         }
                         projectElement.innerHTML = `
                             <div class="project-name">${project.name || 'Unnamed Project'}</div>
@@ -690,7 +694,11 @@
             // Handle tags display (add # back for display only)
             let tagsHtml = '';
             if (tags && tags.length > 0) {
-                tagsHtml = tags.map(tag => `<span class="tag">#${tag}</span>`).join('');
+                tagsHtml = tags.map(tag => {
+                    const cleanTag = String(tag || '').trim();
+                    const displayTag = cleanTag.startsWith('#') ? cleanTag : `#${cleanTag}`;
+                    return `<span class="tag">${displayTag}</span>`;
+                }).join('');
             }
             
             // Handle category display
@@ -730,7 +738,7 @@
                     <span class="editable-field" data-field="description" data-original="${escapeHtml(project.description || '')}">${project.description || 'No description available'}</span>
                 </div>
                 <div style="margin-top: 15px; font-size: 12px; color: #666;">
-                    Click on any field to edit it. For Tags and Category, use the simple text editor with comma-separated values.
+                    Click on any field to edit it. For Tags and Category, use the simple text editor with comma-separated values. Tags can be entered with or without # (the # will be added automatically for display).
                 </div>
                 <div style="margin-top: 15px; display: flex; gap: 10px; align-items: center;">
                     <button id="save-changes-btn" class="save-changes-btn" onclick="saveAllChanges()" disabled>Save Changes</button>
@@ -821,7 +829,7 @@
             // Info text
             const infoDiv = document.createElement('div');
             infoDiv.style.cssText = 'font-size: 11px; color: #666; margin: 5px 0;';
-            infoDiv.textContent = `Separate multiple ${fieldName === 'tags' ? 'tags' : 'categories'} with commas. Example: ${fieldName === 'tags' ? 'AI, machine learning, python' : 'Category1, Category2'}`;
+            infoDiv.textContent = `Separate multiple ${fieldName === 'tags' ? 'tags' : 'categories'} with commas. Example: ${fieldName === 'tags' ? 'AI, machine learning, python (# will be added automatically)' : 'Category1, Category2'}`;
             
             // Buttons
             const buttonDiv = document.createElement('div');
@@ -1123,7 +1131,11 @@
         function updateFieldDisplay(fieldElement, fieldName, value) {
             if (fieldName === 'tags') {
                 const tagsHtml = value && value.length > 0 ? 
-                    value.map(tag => `<span class="tag">#${tag}</span>`).join('') : 
+                    value.map(tag => {
+                        const cleanTag = String(tag || '').trim();
+                        const displayTag = cleanTag.startsWith('#') ? cleanTag : `#${cleanTag}`;
+                        return `<span class="tag">${displayTag}</span>`;
+                    }).join('') : 
                     'No tags';
                 fieldElement.innerHTML = tagsHtml;
             } else if (fieldName === 'category') {
