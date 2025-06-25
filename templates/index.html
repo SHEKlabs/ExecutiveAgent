@@ -51,10 +51,13 @@
             flex: 1;
         }
         .left-column {
-            max-width: 400px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 120px); /* Full height minus header and padding */
         }
         .right-column {
-            flex: 2;
+            flex: 1;
             display: flex;
             flex-direction: column;
             height: calc(100vh - 120px); /* Full height minus header and padding */
@@ -193,7 +196,7 @@
             cursor: pointer;
         }
         .assistant-message {
-            background-color: #e1f5fe;
+            background-color: #b7dcedb4;
             padding: 8px 12px;
             border-radius: 15px 15px 15px 0;
             margin-bottom: 10px;
@@ -284,7 +287,7 @@
             /* Core colour palette */
             --bg-color: #EAF7EA;          /* very light jungle-green tint */
             --surface-color: #FFFFFF;     /* clean white surface */
-            --accent-color: #5F8F63;      /* jungle-green accent */
+            --accent-color: #99b49b;      /* jungle-green accent */
             --text-color: #333333;
             /* Shadow helpers for neumorphism */
             --shadow-light: rgba(255, 255, 255, 0.8);
@@ -392,7 +395,7 @@
 
         /* === Minimalism & Palette Refinement === */
         :root {
-            --bg-color: #7A9B7E;          /* darker jungle olive background */
+            --bg-color: #bbdfc283;          /* darker jungle olive background !!! THIS IS WHERE THE APP COLOR BKGROUND IS SET!! */ 
             --surface-color: #F9FFF9;     /* flat surface blending with bg */
             --accent-color: #66BB6A;      /* lighter forest green for buttons */
             --accent-dark: #355F2F;       /* deep olive for text */
@@ -552,7 +555,7 @@
         <div class="design-credit">
             <span class="designed-by">Designed by:</span> <span class="shek-labs">SHEK Labs</span>
         </div>
-        <h1>ExecutiveAgent</h1>
+        <h1>Executive Agent</h1>    <!-- THIS IS THE APP NAME TITLE SET HERE !!!!! --> 
         <span>Your AI Executive Assistant</span>
     </header>
     <div class="container">
